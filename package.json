@@ -20,13 +20,15 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "migration:run": "pnpm exec typeorm-ts-node-commonjs migration:run -d src/data-source.ts",
     "migration:revert": "pnpm exec typeorm-ts-node-commonjs migration:revert -d src/data-source.ts",
-    "seed:user": "pnpm exec ts-node -r tsconfig-paths/register src/scripts/seed-user.ts"
+    "seed:user": "pnpm exec ts-node -r tsconfig-paths/register src/scripts/seed-user.ts",
+    "seed:user:revert": "pnpm exec ts-node -r tsconfig-paths/register src/scripts/seed-user-revert.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/swagger": "^11.4.2",
     "@nestjs/typeorm": "^11.0.1",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",

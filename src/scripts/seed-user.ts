@@ -4,10 +4,6 @@
  *
  * pnpm run seed:user
  */
-import * as dotenv from 'dotenv';
-
-dotenv.config();
-
 import * as bcrypt from 'bcrypt';
 import { AppDataSource } from '../data-source';
 import { User } from '../entities/user.entity';

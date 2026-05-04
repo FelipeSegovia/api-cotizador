@@ -1,10 +1,10 @@
 import { DataSource } from 'typeorm';
 import { join } from 'node:path';
-import * as dotenv from 'dotenv';
+import { config } from 'dotenv';
 import { Quotation } from './entities/quotation.entity';
 import { User } from './entities/user.entity';
 
-dotenv.config();
+config({ path: join(__dirname, '..', '.env') });
 
 /** TypeORM CLI (migrations): `pnpm run migration:run` */
 export const AppDataSource = new DataSource({
@@ -19,5 +19,3 @@ export const AppDataSource = new DataSource({
   synchronize: false,
   logging: process.env.NODE_ENV !== 'production',
 });
-
-export default AppDataSource;
