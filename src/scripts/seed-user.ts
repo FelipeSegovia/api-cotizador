@@ -5,8 +5,20 @@
  * pnpm run seed:user
  */
 import * as bcrypt from 'bcrypt';
+import pino from 'pino';
 import { AppDataSource } from '../data-source';
 import { User } from '../entities/user.entity';
+
+const log = pino({
+  messageKey: 'message',
+  errorKey: 'err',
+  timestamp: pino.stdTimeFunctions.isoTime,
+  formatters: {
+    level(label) {
+      return { level: label };
+    },
+  },
+}).child({ context: 'seed:user' });
 
 async function main() {
   const email = process.env.SEED_EMAIL;
@@ -14,7 +26,7 @@ async function main() {
   const name = process.env.SEED_NAME?.trim() || 'Admin';
 
   if (!email?.trim() || !password) {
-    console.error(
+    log.error(
       'Defina SEED_EMAIL y SEED_PASSWORD en el entorno (ej. archivo .env).',
     );
     process.exit(1);
@@ -30,7 +42,7 @@ async function main() {
     existing.passwordHash = hash;
     existing.name = name;
     await repo.save(existing);
-    console.log(`Usuario actualizado: ${normalized}`);
+    log.info({ email: normalized }, 'Usuario actualizado');
   } else {
     await repo.save(
       repo.create({
@@ -39,13 +51,13 @@ async function main() {
         passwordHash: hash,
       }),
     );
-    console.log(`Usuario creado: ${normalized}`);
+    log.info({ email: normalized }, 'Usuario creado');
   }
 
   await AppDataSource.destroy();
 }
 
-main().catch((err) => {
-  console.error(err);
+main().catch((err: unknown) => {
+  log.error(err, 'Error ejecutando seed');
   process.exit(1);
 });

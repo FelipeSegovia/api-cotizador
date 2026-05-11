@@ -3,8 +3,9 @@ dotenv.config();
 
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { Logger } from 'nestjs-pino';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { AppModule } from './app.module';
 
 const swaggerConfig = new DocumentBuilder()
   .setTitle('Cotizador API')
@@ -23,11 +24,18 @@ const swaggerConfig = new DocumentBuilder()
   )
   .addTag('App', 'Comprobaciones básicas del servicio')
   .addTag('Autenticación', 'Login, perfil y logout')
+  .addTag('Cotizaciones', 'CRUD de cotizaciones del usuario autenticado')
   .build();
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(Logger));
+
   app.setGlobalPrefix('api');
+  app.enableCors({
+    origin: ['http://localhost:5173'],
+    credentials: true,
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

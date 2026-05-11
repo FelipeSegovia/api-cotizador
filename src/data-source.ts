@@ -2,6 +2,7 @@ import { DataSource } from 'typeorm';
 import { join } from 'node:path';
 import { config } from 'dotenv';
 import { Quotation } from './entities/quotation.entity';
+import { QuotationItem } from './entities/quotation-item.entity';
 import { User } from './entities/user.entity';
 
 config({ path: join(__dirname, '..', '.env') });
@@ -14,7 +15,7 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  entities: [Quotation, User],
+  entities: [Quotation, QuotationItem, User],
   migrations: [join(__dirname, 'migrations', '*{.ts,.js}')],
   synchronize: false,
   logging: process.env.NODE_ENV !== 'production',
