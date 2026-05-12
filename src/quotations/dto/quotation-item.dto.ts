@@ -29,6 +29,11 @@ export class QuotationItemInputDto {
   @Min(1)
   quantity!: number;
 
+  @ApiProperty({ example: 1, minimum: 1 })
+  @IsInt()
+  @Min(1)
+  subtotal!: number;
+
   @ApiProperty({ example: 2000000, minimum: 0 })
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
