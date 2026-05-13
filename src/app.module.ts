@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { AllExceptionsFilter } from './common/logging/all-exceptions.filter';
 import { buildLoggerParams } from './common/logging/logger-params';
 import { databaseConfig } from './config/database.config';
+import { CompanyModule } from './company/company.module';
 import { QuotationsModule } from './quotations/quotations.module';
 
 @Module({
@@ -15,6 +16,7 @@ import { QuotationsModule } from './quotations/quotations.module';
     LoggerModule.forRoot(buildLoggerParams()),
     TypeOrmModule.forRoot(databaseConfig),
     AuthModule,
+    CompanyModule,
     QuotationsModule,
   ],
   controllers: [AppController],

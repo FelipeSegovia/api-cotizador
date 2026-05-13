@@ -1,8 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
+  IsDateString,
   IsEmail,
   IsEnum,
   IsOptional,
@@ -18,6 +19,7 @@ export const QUOTATION_STATUSES: QuotationStatus[] = [
   'pending',
   'approved',
   'rejected',
+  'expired',
 ];
 
 export class CreateQuotationDto {
@@ -57,6 +59,21 @@ export class CreateQuotationDto {
   @IsOptional()
   @IsString()
   projectNotes?: string;
+
+  @ApiPropertyOptional({
+    example: '2026-06-30',
+    description:
+      'Validez de la oferta (solo fecha ISO). Si la fecha ya pasó y el estado almacenado es borrador o pendiente, la API expondrá el estado `expirado`.',
+  })
+  @Transform(({ value }: { value: unknown }): string | undefined => {
+    if (value === '' || value === null || value === undefined) {
+      return undefined;
+    }
+    return typeof value === 'string' ? value : undefined;
+  })
+  @IsOptional()
+  @IsDateString()
+  validUntil?: string;
 
   @ApiProperty({ type: [QuotationItemInputDto] })
   @IsArray()

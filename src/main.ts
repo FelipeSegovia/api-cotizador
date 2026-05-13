@@ -24,6 +24,7 @@ const swaggerConfig = new DocumentBuilder()
   )
   .addTag('App', 'Comprobaciones básicas del servicio')
   .addTag('Autenticación', 'Login, perfil y logout')
+  .addTag('Empresa', 'Datos del emisor (1-1 con usuario), usados en PDF')
   .addTag('Cotizaciones', 'CRUD de cotizaciones del usuario autenticado')
   .build();
 

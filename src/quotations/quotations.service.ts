@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { DataSource, Repository } from 'typeorm';
+import type { QuotationStatus } from '../entities/quotation.entity';
 import { Quotation } from '../entities/quotation.entity';
 import { QuotationItem } from '../entities/quotation-item.entity';
 import type { CreateQuotationDto } from './dto/create-quotation.dto';
@@ -62,6 +63,7 @@ export class QuotationsService {
       projectTitle: dto.projectTitle ?? null,
       projectDeadline: dto.projectDeadline ?? null,
       projectNotes: dto.projectNotes ?? null,
+      validUntil: this.parseValidUntil(dto.validUntil),
       status: dto.status ?? 'draft',
       total,
       items: items.map((i) => this.toItemEntity(i)),
@@ -99,6 +101,10 @@ export class QuotationsService {
           projectTitle: dto.projectTitle ?? null,
           projectDeadline: dto.projectDeadline ?? null,
           projectNotes: dto.projectNotes ?? null,
+          validUntil:
+            dto.validUntil !== undefined
+              ? this.parseValidUntil(dto.validUntil)
+              : existing.validUntil,
           status: dto.status ?? existing.status,
           total,
         },
@@ -179,11 +185,51 @@ export class QuotationsService {
       projectTitle: quotation.projectTitle,
       projectDeadline: quotation.projectDeadline,
       projectNotes: quotation.projectNotes,
-      status: quotation.status,
+      validUntil: this.formatValidUntil(quotation.validUntil),
+      status: this.effectiveStatus(quotation.status, quotation.validUntil),
       items,
       total: quotation.total,
       createdAt: quotation.createdAt,
       updatedAt: quotation.updatedAt,
     };
+  }
+
+  private parseValidUntil(raw?: string): Date | null {
+    if (raw == null || raw.trim() === '') {
+      return null;
+    }
+    const key = raw.trim().slice(0, 10);
+    return new Date(`${key}T00:00:00.000Z`);
+  }
+
+  private formatValidUntil(value: Date | null): string | null {
+    if (!value) {
+      return null;
+    }
+    return value instanceof Date
+      ? value.toISOString().slice(0, 10)
+      : String(value).slice(0, 10);
+  }
+
+  private effectiveStatus(
+    stored: Quotation['status'],
+    validUntil: Date | null,
+  ): QuotationStatus {
+    if (stored === 'approved' || stored === 'rejected') {
+      return stored;
+    }
+    if (!validUntil) {
+      return stored;
+    }
+    const limit = this.toDateKeyUtc(validUntil);
+    const today = this.toDateKeyUtc(new Date());
+    if (today > limit) {
+      return 'expired';
+    }
+    return stored;
+  }
+
+  private toDateKeyUtc(d: Date): string {
+    return d.toISOString().slice(0, 10);
   }
 }

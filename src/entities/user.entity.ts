@@ -17,6 +17,9 @@ export class User {
   @Column({ type: 'varchar', length: 255 })
   name!: string;
 
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  mobilePhone!: string | null;
+
   @Column({ type: 'varchar', length: 255 })
   passwordHash!: string;
 

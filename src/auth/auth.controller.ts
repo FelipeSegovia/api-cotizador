@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Patch,
   Post,
   Req,
   UseGuards,
@@ -26,6 +27,7 @@ import {
   LogoutSuccessDto,
 } from './dto/auth-response.dto';
 import { LoginDto } from './dto/login.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 type RequestWithUser = Request & { user: JwtPayload };
 
@@ -61,6 +63,24 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: 'Token ausente o inválido' })
   async me(@Req() req: RequestWithUser) {
     return this.authService.me(req.user.sub);
+  }
+
+  @Patch('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Actualizar perfil del usuario autenticado',
+    description:
+      'Actualmente permite establecer `mobilePhone`. Requiere Authorization: Bearer.',
+  })
+  @ApiBody({ type: UpdateProfileDto })
+  @ApiOkResponse({
+    description: 'Usuario actualizado',
+    type: AuthUserSummaryDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Token ausente o inválido' })
+  async patchMe(@Req() req: RequestWithUser, @Body() dto: UpdateProfileDto) {
+    return this.authService.patchMe(req.user.sub, dto);
   }
 
   @Post('logout')
