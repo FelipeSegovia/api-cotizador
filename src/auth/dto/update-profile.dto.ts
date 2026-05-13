@@ -10,4 +10,13 @@ export class UpdateProfileDto {
   @IsString()
   @Length(0, 32)
   mobilePhone?: string;
+
+  @ApiPropertyOptional({
+    description: 'Nombre del usuario',
+    example: 'Juan',
+  })
+  @IsOptional()
+  @IsString()
+  @Length(0, 255)
+  name?: string;
 }
