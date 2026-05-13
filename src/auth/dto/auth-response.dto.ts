@@ -9,6 +9,13 @@ export class AuthUserSummaryDto {
 
   @ApiProperty()
   name!: string;
+
+  @ApiProperty({
+    nullable: true,
+    description: 'Teléfono de contacto',
+    example: '+56912345678',
+  })
+  mobilePhone!: string | null;
 }
 
 export class LoginSuccessDto {

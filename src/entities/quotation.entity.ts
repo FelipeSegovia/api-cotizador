@@ -10,10 +10,15 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { decimalNumberTransformer } from '../common/typeorm/decimal.transformer';
-import { QuotationItem } from './quotation-item.entity.js';
+import { QuotationItem } from './quotation-item.entity';
 import { User } from './user.entity';
 
-export type QuotationStatus = 'draft' | 'pending' | 'approved' | 'rejected';
+export type QuotationStatus =
+  | 'draft'
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'expired';
 
 @Entity('quotations')
 export class Quotation {
@@ -48,6 +53,9 @@ export class Quotation {
 
   @Column({ type: 'varchar', length: 32, default: 'draft' })
   status!: QuotationStatus;
+
+  @Column({ type: 'date', nullable: true })
+  validUntil!: Date | null;
 
   @Column({
     type: 'decimal',

@@ -28,6 +28,13 @@ export class QuotationResponseDto {
   @ApiProperty({ example: '', nullable: true })
   projectNotes!: string | null;
 
+  @ApiProperty({
+    example: '2026-06-30',
+    nullable: true,
+    description: 'Validez de la oferta (solo fecha).',
+  })
+  validUntil!: string | null;
+
   @ApiProperty({ enum: QUOTATION_STATUSES, example: 'draft' })
   status!: QuotationStatus;
 

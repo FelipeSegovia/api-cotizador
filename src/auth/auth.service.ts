@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import type { LoginDto } from './dto/login.dto';
+import type { UpdateProfileDto } from './dto/update-profile.dto';
 import { jwtExpiresInSeconds } from './jwt-expires';
 import type { JwtPayload } from './jwt-payload.type';
 
@@ -33,6 +34,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
+        mobilePhone: user.mobilePhone,
       },
       token,
       expiresIn: jwtExpiresInSeconds(),
@@ -48,7 +50,13 @@ export class AuthService {
       id: user.id,
       email: user.email,
       name: user.name,
+      mobilePhone: user.mobilePhone,
     };
+  }
+
+  async patchMe(userId: string, dto: UpdateProfileDto) {
+    await this.usersService.updateProfile(userId, dto);
+    return this.me(userId);
   }
 
   logout() {

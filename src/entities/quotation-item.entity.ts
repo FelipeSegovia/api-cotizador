@@ -1,6 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
 import { decimalNumberTransformer } from '../common/typeorm/decimal.transformer';
-import { Quotation } from './quotation.entity.js';
+import { Quotation } from './quotation.entity';
 
 @Entity('quotation_items')
 export class QuotationItem {
