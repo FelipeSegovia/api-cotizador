@@ -19,6 +19,11 @@ const STANDARD_FONTS = {
   },
 } as const;
 
+/** Nombres que PDFKit usa como fuentes estándar (no son rutas de disco). */
+const PDFKIT_STANDARD_FONT_NAMES = new Set<string>(
+  Object.values(STANDARD_FONTS.Helvetica),
+);
+
 type PdfMakeInstance = typeof pdfMake & {
   fonts: typeof STANDARD_FONTS;
   createPdf: (doc: TDocumentDefinitions) => {
@@ -35,7 +40,9 @@ export class QuotationPdfService implements OnModuleInit {
   onModuleInit(): void {
     const pm = pdfMake as PdfMakeInstance;
     pm.fonts = STANDARD_FONTS;
-    pm.setLocalAccessPolicy?.(() => false);
+    pm.setLocalAccessPolicy?.((path: string) =>
+      PDFKIT_STANDARD_FONT_NAMES.has(path),
+    );
     pm.setUrlAccessPolicy?.(() => false);
   }
 
