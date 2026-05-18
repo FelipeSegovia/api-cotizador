@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { DataSource, Repository } from 'typeorm';
@@ -9,6 +13,7 @@ import type { CreateQuotationDto } from './dto/create-quotation.dto';
 import type { QuotationItemInputDto } from './dto/quotation-item.dto';
 import type { QuotationResponseDto } from './dto/quotation-response.dto';
 import type { UpdateQuotationDto } from './dto/update-quotation.dto';
+import type { UpdateQuotationStatusDto } from './dto/update-quotation-status.dto';
 
 interface NormalizedItem {
   id: string;
@@ -126,6 +131,42 @@ export class QuotationsService {
       throw new NotFoundException('Cotización no encontrada');
     }
     return this.toResponse(refreshed);
+  }
+
+  async updateStatus(
+    userId: string,
+    id: string,
+    dto: UpdateQuotationStatusDto,
+  ): Promise<QuotationResponseDto> {
+    const quotation = await this.quotationsRepo.findOne({
+      where: { id, userId },
+    });
+    if (!quotation) {
+      throw new NotFoundException('Cotización no encontrada');
+    }
+
+    if (!this.canAcceptClientStatus(quotation)) {
+      throw new ConflictException('No está en sent o ya está expirada');
+    }
+
+    await this.quotationsRepo.update({ id }, { status: dto.status });
+
+    const refreshed = await this.quotationsRepo.findOne({
+      where: { id, userId },
+    });
+    if (!refreshed) {
+      throw new NotFoundException('Cotización no encontrada');
+    }
+    return this.toResponse(refreshed);
+  }
+
+  private canAcceptClientStatus(quotation: Quotation): boolean {
+    if (quotation.status !== 'sent') {
+      return false;
+    }
+    return (
+      this.effectiveStatus(quotation.status, quotation.validUntil) === 'sent'
+    );
   }
 
   private normalizeItems(items: QuotationItemInputDto[]): NormalizedItem[] {

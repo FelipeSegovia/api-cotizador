@@ -15,7 +15,7 @@ import { User } from './user.entity';
 
 export type QuotationStatus =
   | 'draft'
-  | 'pending'
+  | 'sent'
   | 'approved'
   | 'rejected'
   | 'expired';

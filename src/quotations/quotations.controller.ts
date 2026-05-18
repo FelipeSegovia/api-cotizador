@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Put,
   Req,
@@ -16,6 +17,7 @@ import {
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiConflictResponse,
   ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -32,6 +34,7 @@ import { CompanyService } from '../company/company.service';
 import { CreateQuotationDto } from './dto/create-quotation.dto';
 import { QuotationResponseDto } from './dto/quotation-response.dto';
 import { UpdateQuotationDto } from './dto/update-quotation.dto';
+import { UpdateQuotationStatusDto } from './dto/update-quotation-status.dto';
 import { buildQuoteNumber } from './pdf/quotation-pdf.formatters';
 import { QuotationPdfService } from './pdf/quotation-pdf.service';
 import { QuotationsService } from './quotations.service';
@@ -128,6 +131,30 @@ export class QuotationsController {
     @Body() dto: CreateQuotationDto,
   ): Promise<QuotationResponseDto> {
     return this.quotationsService.create(req.user.sub, dto);
+  }
+
+  @Patch(':id/status')
+  @ApiOperation({
+    summary: 'Actualizar estado de la cotización (aprobada o rechazada)',
+    description:
+      'Solo cotizaciones en estado `sent` y vigentes pueden pasar a `approved` o `rejected`.',
+  })
+  @ApiBody({ type: UpdateQuotationStatusDto })
+  @ApiOkResponse({ type: QuotationResponseDto })
+  @ApiUnauthorizedResponse({ description: 'Token ausente o inválido' })
+  @ApiNotFoundResponse({ description: 'Cotización no encontrada' })
+  @ApiConflictResponse({
+    description: 'No está en sent o ya está expirada',
+  })
+  @ApiUnprocessableEntityResponse({
+    description: 'status distinto de approved o rejected',
+  })
+  updateStatus(
+    @Req() req: RequestWithUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateQuotationStatusDto,
+  ): Promise<QuotationResponseDto> {
+    return this.quotationsService.updateStatus(req.user.sub, id, dto);
   }
 
   @Put(':id')

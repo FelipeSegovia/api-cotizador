@@ -16,7 +16,7 @@ import { QuotationItemInputDto } from './quotation-item.dto';
 
 export const QUOTATION_STATUSES: QuotationStatus[] = [
   'draft',
-  'pending',
+  'sent',
   'approved',
   'rejected',
   'expired',
@@ -63,7 +63,7 @@ export class CreateQuotationDto {
   @ApiPropertyOptional({
     example: '2026-06-30',
     description:
-      'Validez de la oferta (solo fecha ISO). Si la fecha ya pasó y el estado almacenado es borrador o pendiente, la API expondrá el estado `expirado`.',
+      'Validez de la oferta (solo fecha ISO). Si la fecha ya pasó y el estado almacenado es borrador o enviado, la API expondrá el estado `expired`.',
   })
   @Transform(({ value }: { value: unknown }): string | undefined => {
     if (value === '' || value === null || value === undefined) {
