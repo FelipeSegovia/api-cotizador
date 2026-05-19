@@ -133,6 +133,29 @@ export class QuotationsController {
     return this.quotationsService.create(req.user.sub, dto);
   }
 
+  @Post(':id/send')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Enviar cotización por correo al cliente',
+    description:
+      'Genera el PDF, lo envía al clientEmail con plantilla Handlebars vía Resend (SMTP) y marca la cotización como `sent` si estaba en `draft`. Permite reenvío si ya está en `sent`.',
+  })
+  @ApiOkResponse({ type: QuotationResponseDto })
+  @ApiUnauthorizedResponse({ description: 'Token ausente o inválido' })
+  @ApiNotFoundResponse({ description: 'Cotización no encontrada' })
+  @ApiConflictResponse({
+    description: 'Estado no permite envío (approved, rejected o expired)',
+  })
+  @ApiUnprocessableEntityResponse({
+    description: 'clientEmail ausente o empresa no configurada',
+  })
+  sendByEmail(
+    @Req() req: RequestWithUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<QuotationResponseDto> {
+    return this.quotationsService.sendByEmail(req.user.sub, id);
+  }
+
   @Patch(':id/status')
   @ApiOperation({
     summary: 'Actualizar estado de la cotización (aprobada o rechazada)',

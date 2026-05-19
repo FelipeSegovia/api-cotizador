@@ -1,19 +1,26 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { DataSource, Repository } from 'typeorm';
+import { CompanyService } from '../company/company.service';
 import type { QuotationStatus } from '../entities/quotation.entity';
 import { Quotation } from '../entities/quotation.entity';
 import { QuotationItem } from '../entities/quotation-item.entity';
+import { MailService } from '../mail/mail.service';
+import { UsersService } from '../users/users.service';
 import type { CreateQuotationDto } from './dto/create-quotation.dto';
 import type { QuotationItemInputDto } from './dto/quotation-item.dto';
 import type { QuotationResponseDto } from './dto/quotation-response.dto';
 import type { UpdateQuotationDto } from './dto/update-quotation.dto';
 import type { UpdateQuotationStatusDto } from './dto/update-quotation-status.dto';
+import { buildQuoteNumber } from './pdf/quotation-pdf.formatters';
+import { QuotationPdfService } from './pdf/quotation-pdf.service';
 
 interface NormalizedItem {
   id: string;
@@ -26,10 +33,16 @@ interface NormalizedItem {
 
 @Injectable()
 export class QuotationsService {
+  private readonly logger = new Logger(QuotationsService.name);
+
   constructor(
     @InjectRepository(Quotation)
     private readonly quotationsRepo: Repository<Quotation>,
     private readonly dataSource: DataSource,
+    private readonly companyService: CompanyService,
+    private readonly quotationPdfService: QuotationPdfService,
+    private readonly mailService: MailService,
+    private readonly usersService: UsersService,
   ) {}
 
   async findAllByUser(userId: string): Promise<QuotationResponseDto[]> {
@@ -133,6 +146,83 @@ export class QuotationsService {
     return this.toResponse(refreshed);
   }
 
+  async sendByEmail(userId: string, id: string): Promise<QuotationResponseDto> {
+    const quotation = await this.quotationsRepo.findOne({
+      where: { id, userId },
+    });
+    if (!quotation) {
+      throw new NotFoundException('Cotización no encontrada');
+    }
+
+    if (!this.canSendByEmail(quotation)) {
+      throw new ConflictException(
+        'El estado de la cotización no permite el envío',
+      );
+    }
+
+    const clientEmail = quotation.clientEmail?.trim();
+    if (!clientEmail) {
+      throw new UnprocessableEntityException(
+        'La cotización debe tener un correo de cliente (clientEmail)',
+      );
+    }
+
+    const company = await this.companyService.findByUserOrFail(userId);
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    const quotationDto = this.toResponse(quotation);
+    const companyDto = this.companyService.toResponse(company);
+    const quoteNumber = buildQuoteNumber(quotation.id);
+
+    const pdfBuffer = await this.quotationPdfService.generate(
+      quotationDto,
+      companyDto,
+      userId,
+    );
+
+    const { messageId } = await this.mailService.sendQuotationMail({
+      to: clientEmail,
+      fromName: user.name,
+      replyTo: user.email,
+      context: {
+        quotationId: quotation.id,
+        clientName: quotation.clientName,
+        projectTitle: quotation.projectTitle ?? 'Sin título',
+        quoteNumber,
+        companyName: companyDto.name,
+        companyEmail: user.email,
+        senderName: user.name,
+      },
+      pdf: {
+        filename: `cotizacion-${quoteNumber}.pdf`,
+        content: pdfBuffer,
+      },
+    });
+
+    if (quotation.status === 'draft') {
+      await this.quotationsRepo.update({ id }, { status: 'sent' });
+    }
+
+    this.logger.log({
+      msg: 'Cotización enviada por correo',
+      quotationId: id,
+      userId,
+      to: clientEmail,
+      messageId,
+    });
+
+    const refreshed = await this.quotationsRepo.findOne({
+      where: { id, userId },
+    });
+    if (!refreshed) {
+      throw new NotFoundException('Cotización no encontrada');
+    }
+    return this.toResponse(refreshed);
+  }
+
   async updateStatus(
     userId: string,
     id: string,
@@ -158,6 +248,14 @@ export class QuotationsService {
       throw new NotFoundException('Cotización no encontrada');
     }
     return this.toResponse(refreshed);
+  }
+
+  private canSendByEmail(quotation: Quotation): boolean {
+    const effective = this.effectiveStatus(
+      quotation.status,
+      quotation.validUntil,
+    );
+    return effective === 'draft' || effective === 'sent';
   }
 
   private canAcceptClientStatus(quotation: Quotation): boolean {
