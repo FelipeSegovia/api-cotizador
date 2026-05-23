@@ -16,6 +16,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
   database: process.env.DB_NAME,
   entities: [Quotation, QuotationItem, User, Company],
   migrations: ['dist/migrations/*.js'],
+  migrationsRun: true,
   synchronize: false,
   logging: process.env.NODE_ENV !== 'production',
 };
