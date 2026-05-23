@@ -4,6 +4,7 @@ import { Company } from '../entities/company.entity';
 import { Quotation } from '../entities/quotation.entity';
 import { QuotationItem } from '../entities/quotation-item.entity';
 import { User } from '../entities/user.entity';
+import { join } from 'node:path';
 
 dotenv.config();
 
@@ -15,7 +16,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   entities: [Quotation, QuotationItem, User, Company],
-  migrations: ['dist/migrations/*.js'],
+  migrations: [join(__dirname, 'migrations', '*.{js,ts}')],
   migrationsRun: true,
   synchronize: false,
   logging: process.env.NODE_ENV !== 'production',
