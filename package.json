@@ -24,6 +24,7 @@
     "seed:user:revert": "pnpm exec ts-node -r tsconfig-paths/register src/scripts/seed-user-revert.ts"
   },
   "dependencies": {
+    "@nestjs-modules/mailer": "^2.3.5",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/jwt": "^11.0.2",
@@ -34,7 +35,9 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "dotenv": "^17.4.2",
+    "handlebars": "^4.7.9",
     "nestjs-pino": "^4.6.1",
+    "nodemailer": "^8.0.7",
     "pdfmake": "^0.3.8",
     "pg": "^8.20.0",
     "pino": "^10",
@@ -53,6 +56,7 @@
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.10.7",
+    "@types/nodemailer": "^8.0.0",
     "@types/pdfmake": "^0.3.2",
     "@types/pg": "^8.20.0",
     "@types/supertest": "^6.0.2",

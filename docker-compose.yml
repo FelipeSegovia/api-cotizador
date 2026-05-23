@@ -11,6 +11,37 @@ services:
       - postgres:/var/lib/postgresql/data
     ports:
       - '${DB_PORT}:5432'
+    deploy:
+      resources:
+        limits:
+          memory: 400M # Esto limita el recurso para Postgres no ahogue la API
+  nestjs-api:
+    container_name: container_api-cotizador
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '${PORT:-3000}:3000'
+    environment:
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_PORT: 5432
+      SEED_EMAIL: ${SEED_EMAIL}
+      SEED_PASSWORD: ${SEED_PASSWORD}
+      SEED_NAME: ${SEED_NAME}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      MAIL_FROM: ${MAIL_FROM}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME}
+      MAIL_ENABLED: ${MAIL_ENABLED}
+    depends_on:
+      - postgres
+    deploy:
+      resources:
+        limits:
+          memory: 400M # Esto limita el recurso para la API no ahogue el servidor
 
 volumes:
   postgres:
