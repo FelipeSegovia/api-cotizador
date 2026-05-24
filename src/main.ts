@@ -36,8 +36,10 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:5173',
-      'https://stunning-ganache-dca39a.netlify.app',
+      'https://tu-sistema.cl',
+      'https://www.tu-sistema.cl',
     ],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
   app.useGlobalPipes(
