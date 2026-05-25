@@ -75,6 +75,14 @@ export class MailService {
     }
 
     try {
+      this.logger.log({
+        msg: 'Iniciando envío SMTP a Resend',
+        quotationId: context.quotationId,
+        to,
+        mailFrom,
+        smtpPort: process.env.MAIL_SMTP_PORT?.trim() || '587',
+      });
+
       const messageId = this.messageIdFromSendResult(
         await this.mailerService.sendMail({
           from: `"${fromName}" <${mailFrom}>`,
