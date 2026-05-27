@@ -36,6 +36,7 @@ services:
       MAIL_FROM: ${MAIL_FROM}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME}
       MAIL_ENABLED: ${MAIL_ENABLED}
+      DOMAIN_URL: ${DOMAIN_URL}
     depends_on:
       - postgres
     deploy:
