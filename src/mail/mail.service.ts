@@ -94,8 +94,7 @@ export class MailService {
     const { to, isResend } = params;
     const mailFrom = process.env.MAIL_FROM?.trim();
     const fromName = process.env.MAIL_FROM_NAME?.trim() || 'Cotizador';
-    const loginUrl =
-      process.env.DOMAIN_URL?.trim() || 'http://localhost:5173/login';
+    const loginUrl = 'https://tu-sistema.cl/login';
     const subject = isResend
       ? 'Tu nueva contraseña provisional — TuSistema'
       : 'Bienvenido a TuSistema — credenciales de acceso';
