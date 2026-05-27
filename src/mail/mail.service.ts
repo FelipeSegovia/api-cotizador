@@ -12,6 +12,10 @@ import {
   isResendSandboxRecipientError,
 } from './mail-from.util';
 import type { QuotationMailContext } from './mail.types';
+import {
+  buildUserCredentialsMailContext,
+  type SendUserCredentialsMailParams,
+} from './mail-credentials.util';
 
 export interface SendQuotationMailParams {
   to: string;
@@ -131,6 +135,84 @@ export class MailService {
         throw new UnprocessableEntityException(
           'Con MAIL_FROM=onboarding@resend.dev solo puedes enviar al correo de tu cuenta Resend. ' +
             'Para enviar a clientes (p. ej. test@gmail.com), verifica tu dominio en https://resend.com/domains y usa MAIL_FROM en ese dominio.',
+        );
+      }
+      throw new InternalServerErrorException('No se pudo enviar el correo');
+    }
+  }
+
+  async sendUserCredentialsMail(
+    params: SendUserCredentialsMailParams,
+  ): Promise<{ messageId: string }> {
+    const { to, isResend } = params;
+    const mailFrom = process.env.MAIL_FROM?.trim();
+    const loginUrl =
+      process.env.APP_LOGIN_URL?.trim() || 'http://localhost:5173/login';
+    const subject = isResend
+      ? 'Tu nueva contraseña provisional — QuoteFlow'
+      : 'Bienvenido al cotizador — credenciales de acceso';
+
+    if (process.env.MAIL_ENABLED !== 'true') {
+      const messageId = `dev-noop-${randomUUID()}`;
+      this.logger.log({
+        msg: 'Correo de credenciales omitido (MAIL_ENABLED no es true)',
+        to,
+        messageId,
+      });
+      return { messageId };
+    }
+
+    if (!mailFrom) {
+      this.logger.error({ msg: 'MAIL_FROM no configurado', to });
+      throw new InternalServerErrorException('No se pudo enviar el correo');
+    }
+
+    if (!process.env.RESEND_API_KEY?.trim()) {
+      this.logger.error({ msg: 'RESEND_API_KEY no configurado', to });
+      throw new InternalServerErrorException('No se pudo enviar el correo');
+    }
+
+    if (isDisallowedMailFrom(mailFrom)) {
+      throw new UnprocessableEntityException(
+        'MAIL_FROM debe ser una dirección de un dominio verificado en Resend.',
+      );
+    }
+
+    try {
+      const messageId = this.messageIdFromSendResult(
+        await this.mailerService.sendMail({
+          from: `"${process.env.MAIL_FROM_NAME ?? 'Cotizador'}" <${mailFrom}>`,
+          to,
+          subject,
+          template: 'user-credentials',
+          context: buildUserCredentialsMailContext(params, loginUrl),
+        }),
+      );
+
+      this.logger.log({
+        msg: 'Correo de credenciales enviado',
+        to,
+        messageId,
+        isResend,
+      });
+
+      return { messageId };
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Error desconocido';
+      this.logger.error({
+        msg: 'Fallo al enviar correo de credenciales',
+        to,
+        err: { message: errorMessage },
+      });
+      if (isResendDomainVerificationError(errorMessage)) {
+        throw new UnprocessableEntityException(
+          'El remitente (MAIL_FROM) debe usar un dominio verificado en Resend.',
+        );
+      }
+      if (isResendSandboxRecipientError(errorMessage)) {
+        throw new UnprocessableEntityException(
+          'Con MAIL_FROM=onboarding@resend.dev solo puedes enviar al correo de tu cuenta Resend.',
         );
       }
       throw new InternalServerErrorException('No se pudo enviar el correo');

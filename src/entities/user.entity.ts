@@ -6,6 +6,8 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+export type UserRole = 'admin' | 'common';
+
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -22,6 +24,15 @@ export class User {
 
   @Column({ type: 'varchar', length: 255 })
   passwordHash!: string;
+
+  @Column({ type: 'varchar', length: 16, default: 'common' })
+  role!: UserRole;
+
+  @Column({ type: 'boolean', default: true })
+  isActive!: boolean;
+
+  @Column({ type: 'boolean', default: false })
+  mustChangePassword!: boolean;
 
   @CreateDateColumn()
   createdAt!: Date;

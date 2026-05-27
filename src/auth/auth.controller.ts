@@ -26,6 +26,7 @@ import {
   LoginSuccessDto,
   LogoutSuccessDto,
 } from './dto/auth-response.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
@@ -81,6 +82,29 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: 'Token ausente o inválido' })
   async patchMe(@Req() req: RequestWithUser, @Body() dto: UpdateProfileDto) {
     return this.authService.patchMe(req.user.sub, dto);
+  }
+
+  @Patch('me/password')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Cambiar contraseña del usuario autenticado',
+    description:
+      'En primer login (mustChangePassword) no se exige currentPassword. Tras el cambio, mustChangePassword pasa a false.',
+  })
+  @ApiBody({ type: ChangePasswordDto })
+  @ApiOkResponse({
+    description: 'Usuario actualizado',
+    type: AuthUserSummaryDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Token inválido o contraseña actual incorrecta',
+  })
+  async patchPassword(
+    @Req() req: RequestWithUser,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.authService.changePassword(req.user.sub, dto);
   }
 
   @Post('logout')

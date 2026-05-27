@@ -1,16 +1,25 @@
 import {
   CanActivate,
   ExecutionContext,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import type { JwtPayload } from './jwt-payload.type';
 import type { Request } from 'express';
+import {
+  USER_LOOKUP_PORT,
+  type UserLookupPort,
+} from '../users/user-lookup.port';
+import type { JwtPayload } from './jwt-payload.type';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    @Inject(USER_LOOKUP_PORT)
+    private readonly userLookup: UserLookupPort,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context
@@ -20,13 +29,28 @@ export class JwtAuthGuard implements CanActivate {
     if (!token) {
       throw new UnauthorizedException();
     }
+
+    let payload: JwtPayload;
     try {
-      const payload = await this.jwtService.verifyAsync<JwtPayload>(token);
-      req.user = payload;
-      return true;
+      payload = await this.jwtService.verifyAsync<JwtPayload>(token);
     } catch {
       throw new UnauthorizedException();
     }
+
+    const user = await this.userLookup.findById(payload.sub);
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException();
+    }
+
+    req.user = {
+      sub: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      isActive: user.isActive,
+      mustChangePassword: user.mustChangePassword,
+    };
+    return true;
   }
 
   private extractBearer(authHeader?: string): string | undefined {
