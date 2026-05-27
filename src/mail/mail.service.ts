@@ -95,10 +95,10 @@ export class MailService {
     const mailFrom = process.env.MAIL_FROM?.trim();
     const fromName = process.env.MAIL_FROM_NAME?.trim() || 'Cotizador';
     const loginUrl =
-      process.env.APP_LOGIN_URL?.trim() || 'http://localhost:5173/login';
+      process.env.DOMAIN_URL?.trim() || 'http://localhost:5173/login';
     const subject = isResend
-      ? 'Tu nueva contraseña provisional — QuoteFlow'
-      : 'Bienvenido al cotizador — credenciales de acceso';
+      ? 'Tu nueva contraseña provisional — TuSistema'
+      : 'Bienvenido a TuSistema — credenciales de acceso';
     const logKey = { to, isResend };
 
     if (process.env.MAIL_ENABLED !== 'true') {
