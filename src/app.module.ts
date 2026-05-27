@@ -10,12 +10,14 @@ import { buildLoggerParams } from './common/logging/logger-params';
 import { databaseConfig } from './config/database.config';
 import { CompanyModule } from './company/company.module';
 import { QuotationsModule } from './quotations/quotations.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
     LoggerModule.forRoot(buildLoggerParams()),
     TypeOrmModule.forRoot(databaseConfig),
     AuthModule,
+    UsersModule,
     CompanyModule,
     QuotationsModule,
   ],

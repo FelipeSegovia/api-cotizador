@@ -41,6 +41,9 @@ async function main() {
   if (existing) {
     existing.passwordHash = hash;
     existing.name = name;
+    existing.role = 'admin';
+    existing.isActive = true;
+    existing.mustChangePassword = false;
     await repo.save(existing);
     log.info({ email: normalized }, 'Usuario actualizado');
   } else {
@@ -49,6 +52,9 @@ async function main() {
         email: normalized,
         name,
         passwordHash: hash,
+        role: 'admin',
+        isActive: true,
+        mustChangePassword: false,
       }),
     );
     log.info({ email: normalized }, 'Usuario creado');

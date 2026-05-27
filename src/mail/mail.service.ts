@@ -1,17 +1,25 @@
 import {
+  Inject,
   Injectable,
   InternalServerErrorException,
   Logger,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { MailerService } from '@nestjs-modules/mailer';
 import { randomUUID } from 'node:crypto';
+import type { Resend } from 'resend';
+import {
+  buildUserCredentialsMailContext,
+  type SendUserCredentialsMailParams,
+} from './mail-credentials.util';
 import {
   isDisallowedMailFrom,
   isResendDomainVerificationError,
   isResendSandboxRecipientError,
 } from './mail-from.util';
 import type { QuotationMailContext } from './mail.types';
+import { renderQuotationSentHtml } from './quotation-mail.template';
+import { renderUserCredentialsHtml } from './user-credentials-mail.template';
+import { RESEND_CLIENT } from './resend.provider';
 
 export interface SendQuotationMailParams {
   to: string;
@@ -25,7 +33,7 @@ export interface SendQuotationMailParams {
 export class MailService {
   private readonly logger = new Logger(MailService.name);
 
-  constructor(private readonly mailerService: MailerService) {}
+  constructor(@Inject(RESEND_CLIENT) private readonly resend: Resend) {}
 
   async sendQuotationMail(
     params: SendQuotationMailParams,
@@ -34,66 +42,39 @@ export class MailService {
     const mailFrom = process.env.MAIL_FROM?.trim();
     const subject = `Cotización ${context.quoteNumber} — ${context.companyName}`;
     const projectTitle = context.projectTitle?.trim() || 'Sin título';
+    const logKey = { quotationId: context.quotationId, to };
 
     if (process.env.MAIL_ENABLED !== 'true') {
       const messageId = `dev-noop-${randomUUID()}`;
       this.logger.log({
         msg: 'Correo omitido (MAIL_ENABLED no es true)',
-        quotationId: context.quotationId,
-        to,
+        ...logKey,
         messageId,
       });
       return { messageId };
     }
 
-    if (!mailFrom) {
-      this.logger.error({
-        msg: 'MAIL_FROM no configurado',
-        quotationId: context.quotationId,
-      });
-      throw new InternalServerErrorException('No se pudo enviar el correo');
-    }
+    this.assertMailConfigured(mailFrom, logKey);
 
-    if (!process.env.RESEND_API_KEY?.trim()) {
-      this.logger.error({
-        msg: 'RESEND_API_KEY no configurado',
-        quotationId: context.quotationId,
-      });
-      throw new InternalServerErrorException('No se pudo enviar el correo');
-    }
+    const from = `"${fromName}" <${mailFrom}>`;
+    const html = renderQuotationSentHtml({ ...context, projectTitle });
 
-    if (isDisallowedMailFrom(mailFrom)) {
-      this.logger.error({
-        msg: 'MAIL_FROM usa un dominio no permitido como remitente en Resend',
-        quotationId: context.quotationId,
-        mailFromDomain: mailFrom.split('@')[1],
-      });
-      throw new UnprocessableEntityException(
-        'MAIL_FROM debe ser una dirección de un dominio verificado en Resend (ej. onboarding@resend.dev o cotizaciones@tudominio.com). ' +
-          'No uses Gmail/Outlook como remitente; el correo del usuario va en replyTo.',
-      );
-    }
+    this.logger.log({
+      msg: 'Enviando correo vía Resend API',
+      provider: 'resend-api',
+      operation: 'sendQuotationMail',
+      from,
+      ...logKey,
+    });
 
-    try {
-      this.logger.log({
-        msg: 'Iniciando envío SMTP a Resend',
-        quotationId: context.quotationId,
-        to,
-        mailFrom,
-        smtpPort: process.env.MAIL_SMTP_PORT?.trim() || '587',
-      });
-
-      const messageId = this.messageIdFromSendResult(
-        await this.mailerService.sendMail({
-          from: `"${fromName}" <${mailFrom}>`,
+    return this.dispatch(
+      () =>
+        this.resend.emails.send({
+          from,
           to,
           replyTo,
           subject,
-          template: 'quotation-sent',
-          context: {
-            ...context,
-            projectTitle,
-          },
+          html,
           attachments: [
             {
               filename: pdf.filename,
@@ -101,25 +82,88 @@ export class MailService {
               contentType: 'application/pdf',
             },
           ],
+          tags: [{ name: 'category', value: 'quotation' }],
         }),
-      );
+      logKey,
+    );
+  }
 
+  async sendUserCredentialsMail(
+    params: SendUserCredentialsMailParams,
+  ): Promise<{ messageId: string }> {
+    const { to, isResend } = params;
+    const mailFrom = process.env.MAIL_FROM?.trim();
+    const fromName = process.env.MAIL_FROM_NAME?.trim() || 'Cotizador';
+    const loginUrl =
+      process.env.APP_LOGIN_URL?.trim() || 'http://localhost:5173/login';
+    const subject = isResend
+      ? 'Tu nueva contraseña provisional — QuoteFlow'
+      : 'Bienvenido al cotizador — credenciales de acceso';
+    const logKey = { to, isResend };
+
+    if (process.env.MAIL_ENABLED !== 'true') {
+      const messageId = `dev-noop-${randomUUID()}`;
       this.logger.log({
-        msg: 'Correo de cotización enviado',
-        quotationId: context.quotationId,
-        to,
+        msg: 'Correo de credenciales omitido (MAIL_ENABLED no es true)',
+        ...logKey,
         messageId,
       });
+      return { messageId };
+    }
 
+    this.assertMailConfigured(mailFrom, logKey);
+
+    const from = `"${fromName}" <${mailFrom}>`;
+    const html = renderUserCredentialsHtml(
+      buildUserCredentialsMailContext(params, loginUrl),
+    );
+
+    this.logger.log({
+      msg: 'Enviando correo vía Resend API',
+      provider: 'resend-api',
+      operation: 'sendUserCredentialsMail',
+      from,
+      ...logKey,
+    });
+
+    return this.dispatch(
+      () =>
+        this.resend.emails.send({
+          from,
+          to,
+          subject,
+          html,
+          tags: [
+            { name: 'category', value: 'user-credentials' },
+            { name: 'is_resend', value: isResend ? 'true' : 'false' },
+          ],
+        }),
+      logKey,
+    );
+  }
+
+  private async dispatch(
+    send: () => Promise<{
+      data: { id: string } | null;
+      error: { message: string; name?: string } | null;
+    }>,
+    logKey: Record<string, unknown>,
+  ): Promise<{ messageId: string }> {
+    try {
+      const { data, error } = await send();
+      if (error) {
+        throw new Error(error.message);
+      }
+      const messageId = data?.id ?? randomUUID();
+      this.logger.log({ msg: 'Correo enviado', messageId, ...logKey });
       return { messageId };
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : 'Error desconocido';
       this.logger.error({
-        msg: 'Fallo al enviar correo de cotización',
-        quotationId: context.quotationId,
-        to,
+        msg: 'Fallo al enviar correo vía Resend',
         err: { message: errorMessage },
+        ...logKey,
       });
       if (isResendDomainVerificationError(errorMessage)) {
         throw new UnprocessableEntityException(
@@ -137,16 +181,31 @@ export class MailService {
     }
   }
 
-  private messageIdFromSendResult(info: unknown): string {
-    if (
-      typeof info === 'object' &&
-      info !== null &&
-      'messageId' in info &&
-      typeof info.messageId === 'string' &&
-      info.messageId.length > 0
-    ) {
-      return info.messageId;
+  private assertMailConfigured(
+    mailFrom: string | undefined,
+    logContext: Record<string, unknown>,
+  ): asserts mailFrom is string {
+    if (!mailFrom) {
+      this.logger.error({ msg: 'MAIL_FROM no configurado', ...logContext });
+      throw new InternalServerErrorException('No se pudo enviar el correo');
     }
-    return randomUUID();
+    if (!process.env.RESEND_API_KEY?.trim()) {
+      this.logger.error({
+        msg: 'RESEND_API_KEY no configurado',
+        ...logContext,
+      });
+      throw new InternalServerErrorException('No se pudo enviar el correo');
+    }
+    if (isDisallowedMailFrom(mailFrom)) {
+      this.logger.error({
+        msg: 'MAIL_FROM usa un dominio no permitido como remitente en Resend',
+        mailFromDomain: mailFrom.split('@')[1],
+        ...logContext,
+      });
+      throw new UnprocessableEntityException(
+        'MAIL_FROM debe ser una dirección de un dominio verificado en Resend (ej. onboarding@resend.dev o cotizaciones@tudominio.com). ' +
+          'No uses Gmail/Outlook como remitente; el correo del usuario va en replyTo.',
+      );
+    }
   }
 }

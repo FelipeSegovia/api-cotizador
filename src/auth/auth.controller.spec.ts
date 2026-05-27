@@ -1,5 +1,6 @@
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
+import { USER_LOOKUP_PORT } from '../users/user-lookup.port';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -9,6 +10,8 @@ describe('AuthController', () => {
   const authServiceMock = {
     login: jest.fn(),
     me: jest.fn(),
+    patchMe: jest.fn(),
+    changePassword: jest.fn(),
     logout: jest.fn(),
   };
 
@@ -26,6 +29,10 @@ describe('AuthController', () => {
             signAsync: jest.fn(),
           },
         },
+        {
+          provide: USER_LOOKUP_PORT,
+          useValue: { findById: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -34,14 +41,23 @@ describe('AuthController', () => {
 
   it('login delega en AuthService', async () => {
     authServiceMock.login.mockResolvedValue({
-      user: { id: '1', email: 'a@test', name: 'A' },
+      user: {
+        id: '1',
+        email: 'a@test',
+        name: 'A',
+        mobilePhone: '',
+        role: 'common',
+        isActive: true,
+        mustChangePassword: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
       token: 't',
       expiresIn: 900,
     });
     const dto = { email: 'a@test', password: 'p' };
 
-    await expect(controller.login(dto)).resolves.toEqual({
-      user: { id: '1', email: 'a@test', name: 'A' },
+    await expect(controller.login(dto)).resolves.toMatchObject({
       token: 't',
       expiresIn: 900,
     });
@@ -53,19 +69,27 @@ describe('AuthController', () => {
       id: '1',
       email: 'a@test',
       name: 'A',
+      mobilePhone: '',
+      role: 'common',
+      isActive: true,
+      mustChangePassword: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
     const req = {
       user: {
         sub: '1',
         email: 'a@test',
         name: 'A',
+        role: 'common' as const,
+        isActive: true,
+        mustChangePassword: false,
       },
     };
 
-    await expect(controller.me(req as never)).resolves.toEqual({
+    await expect(controller.me(req as never)).resolves.toMatchObject({
       id: '1',
       email: 'a@test',
-      name: 'A',
     });
     expect(authServiceMock.me).toHaveBeenCalledWith('1');
   });

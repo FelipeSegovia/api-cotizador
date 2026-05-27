@@ -36,7 +36,6 @@ services:
       MAIL_FROM: ${MAIL_FROM}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME}
       MAIL_ENABLED: ${MAIL_ENABLED}
-      MAIL_SMTP_PORT: ${MAIL_SMTP_PORT:-587}
     depends_on:
       - postgres
     deploy:

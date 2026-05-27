@@ -15,7 +15,7 @@ import { QuotationsService } from './quotations.service';
     TypeOrmModule.forFeature([Quotation, QuotationItem]),
     CompanyModule,
     MailModule,
-    UsersModule,
+    UsersModule, // JwtAuthGuard requiere UsersService
   ],
   controllers: [QuotationsController],
   providers: [QuotationsService, QuotationPdfService, JwtAuthGuard],

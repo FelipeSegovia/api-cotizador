@@ -11,11 +11,25 @@ export class AuthUserSummaryDto {
   name!: string;
 
   @ApiProperty({
-    nullable: true,
     description: 'Teléfono de contacto',
     example: '+56912345678',
   })
-  mobilePhone!: string | null;
+  mobilePhone!: string;
+
+  @ApiProperty({ enum: ['admin', 'common'] })
+  role!: 'admin' | 'common';
+
+  @ApiProperty()
+  isActive!: boolean;
+
+  @ApiProperty()
+  mustChangePassword!: boolean;
+
+  @ApiProperty({ format: 'date-time' })
+  createdAt!: Date;
+
+  @ApiProperty({ format: 'date-time' })
+  updatedAt!: Date;
 }
 
 export class LoginSuccessDto {
