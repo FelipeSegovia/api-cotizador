@@ -27,6 +27,7 @@ const swaggerConfig = new DocumentBuilder()
   .addTag('Usuarios (Admin)', 'Gestión de usuarios para la beta (solo admin)')
   .addTag('Empresa', 'Datos del emisor (1-1 con usuario), usados en PDF')
   .addTag('Cotizaciones', 'CRUD de cotizaciones del usuario autenticado')
+  .addTag('Feedback', 'Sugerencias y opiniones de los usuarios')
   .build();
 
 async function bootstrap() {

@@ -1,6 +1,7 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import * as dotenv from 'dotenv';
 import { Company } from '../entities/company.entity';
+import { Feedback } from '../entities/feedback.entity';
 import { Quotation } from '../entities/quotation.entity';
 import { QuotationItem } from '../entities/quotation-item.entity';
 import { User } from '../entities/user.entity';
@@ -15,7 +16,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  entities: [Quotation, QuotationItem, User, Company],
+  entities: [Quotation, QuotationItem, User, Company, Feedback],
   migrations: [join(__dirname, 'migrations', '*.{js,ts}')],
   migrationsRun: true,
   synchronize: false,

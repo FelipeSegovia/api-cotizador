@@ -9,6 +9,7 @@ import { AllExceptionsFilter } from './common/logging/all-exceptions.filter';
 import { buildLoggerParams } from './common/logging/logger-params';
 import { databaseConfig } from './config/database.config';
 import { CompanyModule } from './company/company.module';
+import { FeedbackModule } from './feedback/feedback.module';
 import { QuotationsModule } from './quotations/quotations.module';
 import { UsersModule } from './users/users.module';
 
@@ -20,6 +21,7 @@ import { UsersModule } from './users/users.module';
     UsersModule,
     CompanyModule,
     QuotationsModule,
+    FeedbackModule,
   ],
   controllers: [AppController],
   providers: [
