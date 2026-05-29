@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import type { FeedbackCategory } from '../feedback/enums/feedback-category.enum';
+import type { FeedbackPriority } from '../feedback/enums/feedback-priority.enum';
 import type { FeedbackStatus } from '../feedback/enums/feedback-status.enum';
 import { User } from './user.entity';
 
@@ -39,6 +40,9 @@ export class Feedback {
 
   @Column({ type: 'varchar', length: 32, default: 'pending' })
   status!: FeedbackStatus;
+
+  @Column({ type: 'varchar', length: 16, default: 'medium' })
+  priority!: FeedbackPriority;
 
   @CreateDateColumn()
   createdAt!: Date;

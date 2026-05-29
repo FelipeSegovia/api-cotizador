@@ -8,6 +8,7 @@ import {
   buildQuoteNumber,
   formatCLP,
   formatDate,
+  formatRut,
 } from './quotation-pdf.formatters';
 
 const STANDARD_FONTS = {
@@ -95,7 +96,7 @@ export class QuotationPdfService implements OnModuleInit {
     const ivaAmount = Number((subtotalNet * IVA_RATE).toFixed(2));
     const totalWithIva = Number((subtotalNet + ivaAmount).toFixed(2));
 
-    const companyLines: string[] = [`RUT: ${company.rut}`];
+    const companyLines: string[] = [`Rut: ${formatRut(company.rut)}`];
     if (company.address?.trim()) {
       companyLines.push(company.address.trim());
     }
@@ -123,7 +124,7 @@ export class QuotationPdfService implements OnModuleInit {
     ];
     if (quotation.clientRut?.trim()) {
       clientStack.push({
-        text: `RUT: ${quotation.clientRut.trim()}`,
+        text: `Rut: ${formatRut(quotation.clientRut)}`,
         fontSize: 10,
         color: COLORS.slate600,
         margin: [0, 2, 0, 0],
@@ -131,7 +132,7 @@ export class QuotationPdfService implements OnModuleInit {
     }
     if (quotation.clientEmail?.trim()) {
       clientStack.push({
-        text: quotation.clientEmail.trim(),
+        text: `Correo: ${quotation.clientEmail.trim()}`,
         fontSize: 10,
         color: COLORS.slate600,
         margin: [0, 2, 0, 0],
@@ -199,48 +200,48 @@ export class QuotationPdfService implements OnModuleInit {
       {
         columns: [
           {
-            width: '*',
-            columnGap: 10,
-            columns: [
-              {
-                width: 36,
-                table: {
-                  widths: [36],
-                  body: [
-                    [
-                      {
-                        text: 'QF',
-                        fillColor: COLORS.slate800,
-                        color: '#ffffff',
-                        bold: true,
-                        fontSize: 11,
-                        alignment: 'center',
-                        margin: [0, 10, 0, 0],
-                      },
-                    ],
-                  ],
-                },
-                layout: {
-                  defaultBorder: false,
-                },
-              },
-              {
-                width: '*',
-                stack: [
+            width: 36,
+            table: {
+              widths: [36],
+              heights: () => 36,
+              body: [
+                [
                   {
-                    text: company.name,
+                    text: 'QF',
+                    fillColor: COLORS.slate800,
+                    color: '#ffffff',
                     bold: true,
-                    fontSize: 13,
-                    color: COLORS.slate900,
+                    fontSize: 11,
+                    alignment: 'center',
+                    margin: [0, 10, 0, 0],
                   },
-                  ...companyLines.map((line) => ({
-                    text: line,
-                    fontSize: 9,
-                    color: COLORS.slate500,
-                    margin: [0, 2, 0, 0],
-                  })),
                 ],
+              ],
+            },
+            layout: {
+              defaultBorder: false,
+              paddingLeft: () => 0,
+              paddingRight: () => 0,
+              paddingTop: () => 0,
+              paddingBottom: () => 0,
+            },
+          },
+          {
+            width: '*',
+            margin: [8, 0, 0, 0],
+            stack: [
+              {
+                text: company.name,
+                bold: true,
+                fontSize: 13,
+                color: COLORS.slate900,
               },
+              ...companyLines.map((line) => ({
+                text: line,
+                fontSize: 9,
+                color: COLORS.slate500,
+                margin: [0, 2, 0, 0],
+              })),
             ],
           },
           {
@@ -272,7 +273,9 @@ export class QuotationPdfService implements OnModuleInit {
                 text: `Válido hasta: ${validUntilLabel}`,
                 alignment: 'right',
                 fontSize: 9,
+                bold: true,
                 color: COLORS.slate500,
+                margin: [6, 6, 0, 0],
               },
             ],
           },

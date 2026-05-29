@@ -6,10 +6,12 @@ export function toFeedbackResponse(entity: Feedback): FeedbackResponseDto {
     id: entity.id,
     userId: entity.userId,
     userEmail: entity.userEmail,
+    userName: entity.user?.name,
     title: entity.title,
     category: entity.category,
     description: entity.description,
     status: entity.status,
+    priority: entity.priority,
     createdAt: entity.createdAt,
     updatedAt: entity.updatedAt,
   };

@@ -5,6 +5,10 @@ import {
   type FeedbackCategory,
 } from '../enums/feedback-category.enum';
 import {
+  FEEDBACK_PRIORITIES,
+  type FeedbackPriority,
+} from '../enums/feedback-priority.enum';
+import {
   FEEDBACK_STATUSES,
   type FeedbackStatus,
 } from '../enums/feedback-status.enum';
@@ -19,4 +23,9 @@ export class FindAllFeedbackQueryDto {
   @IsOptional()
   @IsIn([...FEEDBACK_CATEGORIES], { message: 'Categoría inválida' })
   category?: FeedbackCategory;
+
+  @ApiPropertyOptional({ enum: FEEDBACK_PRIORITIES })
+  @IsOptional()
+  @IsIn([...FEEDBACK_PRIORITIES], { message: 'Prioridad inválida' })
+  priority?: FeedbackPriority;
 }

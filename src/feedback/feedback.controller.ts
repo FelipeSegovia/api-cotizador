@@ -30,7 +30,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { FeedbackResponseDto } from './dto/feedback-response.dto';
 import { FindAllFeedbackQueryDto } from './dto/find-all-feedback-query.dto';
-import { UpdateFeedbackStatusDto } from './dto/update-feedback-status.dto';
+import { UpdateFeedbackPriorityDto } from './dto/update-feedback-priority.dto';
 import { FeedbackValidationPipe } from './feedback-validation.pipe';
 import { FeedbackService } from './feedback.service';
 
@@ -76,7 +76,7 @@ export class FeedbackController {
   @ApiOperation({
     summary: 'Listar todo el feedback (admin)',
     description:
-      'Listado global para el panel de administración. Filtros opcionales por `status` y `category`.',
+      'Listado global para el panel de administración. Filtros opcionales por `status`, `category` y `priority`.',
   })
   @ApiOkResponse({ type: [FeedbackResponseDto] })
   @ApiUnauthorizedResponse({ description: 'Token ausente o inválido' })
@@ -87,24 +87,40 @@ export class FeedbackController {
     return this.feedbackService.findAll({
       status: query.status,
       category: query.category,
+      priority: query.priority,
     });
   }
 
-  @Patch(':id/status')
+  @Get(':id')
   @Roles('admin')
   @ApiOperation({
-    summary: 'Actualizar estado del feedback (admin)',
-    description:
-      'Cambia el estado del workflow: pending, reviewed, planned, done o rejected.',
+    summary: 'Obtener detalle de feedback (admin)',
+    description: 'Devuelve un feedback por ID para el modal de detalle del panel.',
   })
   @ApiOkResponse({ type: FeedbackResponseDto })
   @ApiUnauthorizedResponse({ description: 'Token ausente o inválido' })
   @ApiForbiddenResponse({ description: 'Rol distinto de admin' })
   @ApiNotFoundResponse({ description: 'Feedback no encontrado' })
-  updateStatus(
+  findOne(
     @Param('id', new ParseUUIDPipe()) id: string,
-    @Body(FeedbackValidationPipe) dto: UpdateFeedbackStatusDto,
   ): Promise<FeedbackResponseDto> {
-    return this.feedbackService.updateStatus(id, dto.status);
+    return this.feedbackService.findOne(id);
+  }
+
+  @Patch(':id/priority')
+  @Roles('admin')
+  @ApiOperation({
+    summary: 'Actualizar prioridad del feedback (admin)',
+    description: 'Cambia la prioridad: high, medium o low.',
+  })
+  @ApiOkResponse({ type: FeedbackResponseDto })
+  @ApiUnauthorizedResponse({ description: 'Token ausente o inválido' })
+  @ApiForbiddenResponse({ description: 'Rol distinto de admin' })
+  @ApiNotFoundResponse({ description: 'Feedback no encontrado' })
+  updatePriority(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body(FeedbackValidationPipe) dto: UpdateFeedbackPriorityDto,
+  ): Promise<FeedbackResponseDto> {
+    return this.feedbackService.updatePriority(id, dto.priority);
   }
 }
