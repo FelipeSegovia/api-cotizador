@@ -95,7 +95,8 @@ export class FeedbackController {
   @Roles('admin')
   @ApiOperation({
     summary: 'Obtener detalle de feedback (admin)',
-    description: 'Devuelve un feedback por ID para el modal de detalle del panel.',
+    description:
+      'Devuelve un feedback por ID para el modal de detalle del panel.',
   })
   @ApiOkResponse({ type: FeedbackResponseDto })
   @ApiUnauthorizedResponse({ description: 'Token ausente o inválido' })
