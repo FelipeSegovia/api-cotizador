@@ -2,12 +2,13 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Company } from '../entities/company.entity';
+import { StorageModule } from '../storage/storage.module';
 import { UsersModule } from '../users/users.module';
 import { CompanyController } from './company.controller';
 import { CompanyService } from './company.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Company]), UsersModule],
+  imports: [TypeOrmModule.forFeature([Company]), UsersModule, StorageModule],
   controllers: [CompanyController],
   providers: [CompanyService, JwtAuthGuard],
   exports: [CompanyService],

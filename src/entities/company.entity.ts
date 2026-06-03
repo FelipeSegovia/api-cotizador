@@ -36,6 +36,12 @@ export class Company {
   @Column({ type: 'varchar', length: 255, nullable: true })
   contact!: string | null;
 
+  @Column({ type: 'varchar', length: 1000, nullable: true })
+  logoUrl!: string | null;
+
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  logoKey!: string | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 

@@ -19,6 +19,14 @@ export class CompanyResponseDto {
   @ApiProperty({ example: '+56 9 1234 5678', nullable: true })
   contact!: string | null;
 
+  @ApiProperty({
+    example:
+      'https://cotizador-storage.sfo3.digitaloceanspaces.com/companies/uuid/logo.webp',
+    nullable: true,
+    description: 'URL pública del logo (WebP en Spaces)',
+  })
+  logoUrl!: string | null;
+
   @ApiProperty({ format: 'date-time' })
   createdAt!: Date;
 

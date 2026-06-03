@@ -35,10 +35,7 @@ describe('JwtAuthGuard', () => {
   beforeEach(() => {
     jwt = { verifyAsync: jest.fn() };
     userLookup = { findById: jest.fn() };
-    guard = new JwtAuthGuard(
-      jwt as unknown as JwtService,
-      userLookup as unknown as UserLookupPort,
-    );
+    guard = new JwtAuthGuard(jwt as unknown as JwtService, userLookup);
   });
 
   it('permite acceso cuando el token Bearer es válido y el usuario está activo', async () => {
