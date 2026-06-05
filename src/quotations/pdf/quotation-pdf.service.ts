@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import pdfMake from 'pdfmake';
-import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
+import sharp from 'sharp';
+import type { Column, Content, TDocumentDefinitions } from 'pdfmake/interfaces';
 import type { CompanyResponseDto } from '../../company/dto/company-response.dto';
 import type { QuotationResponseDto } from '../dto/quotation-response.dto';
 import { COLORS, DEFAULT_TERMS, IVA_RATE } from './quotation-pdf.constants';
@@ -52,7 +53,12 @@ export class QuotationPdfService implements OnModuleInit {
     company: CompanyResponseDto,
     userId: string,
   ): Promise<Buffer> {
-    const docDefinition = this.buildDocDefinition(quotation, company);
+    const logoImage = await this.resolveCompanyLogoDataUrl(company.logoUrl);
+    const docDefinition = this.buildDocDefinition(
+      quotation,
+      company,
+      logoImage,
+    );
     const pm = pdfMake as PdfMakeInstance;
     const pdf = pm.createPdf(docDefinition);
     const buffer = await pdf.getBuffer();
@@ -79,9 +85,81 @@ export class QuotationPdfService implements OnModuleInit {
     return parts.length > 0 ? parts.join('\n\n') : '—';
   }
 
+  private async resolveCompanyLogoDataUrl(
+    logoUrl: string | null,
+  ): Promise<string | undefined> {
+    const url = logoUrl?.trim();
+    if (!url) {
+      return undefined;
+    }
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        this.logger.warn({
+          msg: 'Logo no disponible para PDF',
+          logoUrl: url,
+          status: response.status,
+        });
+        return undefined;
+      }
+
+      const raw = Buffer.from(await response.arrayBuffer());
+      const png = await sharp(raw).png().toBuffer();
+      return `data:image/png;base64,${png.toString('base64')}`;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error desconocido';
+      this.logger.warn({
+        msg: 'No se pudo cargar logo para PDF',
+        logoUrl: url,
+        err: { message },
+      });
+      return undefined;
+    }
+  }
+
+  private buildBrandMark(logoImage?: string): Column {
+    if (logoImage) {
+      return {
+        width: 36,
+        image: logoImage,
+        fit: [36, 36],
+      };
+    }
+
+    return {
+      width: 36,
+      table: {
+        widths: [36],
+        heights: () => 36,
+        body: [
+          [
+            {
+              text: 'QF',
+              fillColor: COLORS.slate800,
+              color: '#ffffff',
+              bold: true,
+              fontSize: 11,
+              alignment: 'center',
+              margin: [0, 10, 0, 0],
+            },
+          ],
+        ],
+      },
+      layout: {
+        defaultBorder: false,
+        paddingLeft: () => 0,
+        paddingRight: () => 0,
+        paddingTop: () => 0,
+        paddingBottom: () => 0,
+      },
+    };
+  }
+
   private buildDocDefinition(
     quotation: QuotationResponseDto,
     company: CompanyResponseDto,
+    logoImage?: string,
   ): TDocumentDefinitions {
     const quoteNumber = buildQuoteNumber(quotation.id);
     const emissionDate = formatDate(quotation.createdAt);
@@ -199,33 +277,7 @@ export class QuotationPdfService implements OnModuleInit {
       },
       {
         columns: [
-          {
-            width: 36,
-            table: {
-              widths: [36],
-              heights: () => 36,
-              body: [
-                [
-                  {
-                    text: 'QF',
-                    fillColor: COLORS.slate800,
-                    color: '#ffffff',
-                    bold: true,
-                    fontSize: 11,
-                    alignment: 'center',
-                    margin: [0, 10, 0, 0],
-                  },
-                ],
-              ],
-            },
-            layout: {
-              defaultBorder: false,
-              paddingLeft: () => 0,
-              paddingRight: () => 0,
-              paddingTop: () => 0,
-              paddingBottom: () => 0,
-            },
-          },
+          this.buildBrandMark(logoImage),
           {
             width: '*',
             margin: [8, 0, 0, 0],
