@@ -13,6 +13,9 @@ describe('AuthController', () => {
     patchMe: jest.fn(),
     changePassword: jest.fn(),
     logout: jest.fn(),
+    forgotPassword: jest.fn(),
+    verifyResetCode: jest.fn(),
+    resetPassword: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -103,5 +106,45 @@ describe('AuthController', () => {
       message: 'Logout exitoso',
     });
     expect(authServiceMock.logout).toHaveBeenCalled();
+  });
+
+  it('forgotPassword delega en AuthService', async () => {
+    authServiceMock.forgotPassword.mockResolvedValue({
+      message:
+        'Si el correo existe en nuestro sistema, recibirás un código de verificación en breve.',
+    });
+    const dto = { email: 'u@example.com' };
+
+    await expect(controller.forgotPassword(dto)).resolves.toMatchObject({
+      message:
+        'Si el correo existe en nuestro sistema, recibirás un código de verificación en breve.',
+    });
+    expect(authServiceMock.forgotPassword).toHaveBeenCalledWith(dto);
+  });
+
+  it('verifyResetCode delega en AuthService', async () => {
+    authServiceMock.verifyResetCode.mockResolvedValue({ valid: true });
+    const dto = { email: 'u@example.com', code: '123456' };
+
+    await expect(controller.verifyResetCode(dto)).resolves.toEqual({
+      valid: true,
+    });
+    expect(authServiceMock.verifyResetCode).toHaveBeenCalledWith(dto);
+  });
+
+  it('resetPassword delega en AuthService', async () => {
+    authServiceMock.resetPassword.mockResolvedValue({
+      message: 'Contraseña actualizada correctamente',
+    });
+    const dto = {
+      email: 'u@example.com',
+      code: '123456',
+      newPassword: 'NuevaClave123!',
+    };
+
+    await expect(controller.resetPassword(dto)).resolves.toMatchObject({
+      message: 'Contraseña actualizada correctamente',
+    });
+    expect(authServiceMock.resetPassword).toHaveBeenCalledWith(dto);
   });
 });

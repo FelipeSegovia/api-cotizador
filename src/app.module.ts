@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
@@ -16,6 +17,13 @@ import { UsersModule } from './users/users.module';
 @Module({
   imports: [
     LoggerModule.forRoot(buildLoggerParams()),
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     TypeOrmModule.forRoot(databaseConfig),
     AuthModule,
     UsersModule,
@@ -29,6 +37,10 @@ import { UsersModule } from './users/users.module';
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })

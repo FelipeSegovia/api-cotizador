@@ -50,3 +50,21 @@ export class LogoutSuccessDto {
   @ApiProperty({ example: 'Logout exitoso' })
   message!: string;
 }
+
+export class ForgotPasswordSuccessDto {
+  @ApiProperty({
+    example:
+      'Si el correo existe en nuestro sistema, recibirás un código de verificación en breve.',
+  })
+  message!: string;
+}
+
+export class VerifyResetCodeSuccessDto {
+  @ApiProperty({ example: true })
+  valid!: true;
+}
+
+export class ResetPasswordSuccessDto {
+  @ApiProperty({ example: 'Contraseña actualizada correctamente' })
+  message!: string;
+}

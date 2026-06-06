@@ -9,6 +9,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -23,12 +24,18 @@ import type { JwtPayload } from './jwt-payload.type';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import {
   AuthUserSummaryDto,
+  ForgotPasswordSuccessDto,
   LoginSuccessDto,
   LogoutSuccessDto,
+  ResetPasswordSuccessDto,
+  VerifyResetCodeSuccessDto,
 } from './dto/auth-response.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { VerifyResetCodeDto } from './dto/verify-reset-code.dto';
 
 type RequestWithUser = Request & { user: JwtPayload };
 
@@ -117,5 +124,56 @@ export class AuthController {
   @ApiOkResponse({ description: 'Confirmación', type: LogoutSuccessDto })
   logout() {
     return this.authService.logout();
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 3, ttl: 900000 } })
+  @ApiOperation({
+    summary: 'Solicitar código de recuperación de contraseña',
+    description:
+      'Envía un código OTP al correo si la cuenta existe y está activa. Siempre responde con el mismo mensaje genérico.',
+  })
+  @ApiBody({ type: ForgotPasswordDto })
+  @ApiOkResponse({
+    description: 'Solicitud procesada',
+    type: ForgotPasswordSuccessDto,
+  })
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @Post('verify-reset-code')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @ApiOperation({
+    summary: 'Verificar código OTP de recuperación',
+    description:
+      'Valida el código sin consumirlo. El front puede usarlo para avanzar a la pantalla de nueva contraseña.',
+  })
+  @ApiBody({ type: VerifyResetCodeDto })
+  @ApiOkResponse({
+    description: 'Código válido',
+    type: VerifyResetCodeSuccessDto,
+  })
+  verifyResetCode(@Body() dto: VerifyResetCodeDto) {
+    return this.authService.verifyResetCode(dto);
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @ApiOperation({
+    summary: 'Restablecer contraseña con código OTP',
+    description:
+      'Valida el código nuevamente, lo consume y establece la nueva contraseña.',
+  })
+  @ApiBody({ type: ResetPasswordDto })
+  @ApiOkResponse({
+    description: 'Contraseña actualizada',
+    type: ResetPasswordSuccessDto,
+  })
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
   }
 }

@@ -17,6 +17,7 @@ import {
   isResendSandboxRecipientError,
 } from './mail-from.util';
 import type { QuotationMailContext } from './mail.types';
+import { renderPasswordResetCodeHtml } from './password-reset-mail.template';
 import { renderQuotationSentHtml } from './quotation-mail.template';
 import { renderUserCredentialsHtml } from './user-credentials-mail.template';
 import { RESEND_CLIENT } from './resend.provider';
@@ -27,6 +28,13 @@ export interface SendQuotationMailParams {
   replyTo: string;
   context: QuotationMailContext;
   pdf: { filename: string; content: Buffer };
+}
+
+export interface SendPasswordResetCodeMailParams {
+  to: string;
+  name: string;
+  code: string;
+  expiresMinutes: number;
 }
 
 @Injectable()
@@ -137,6 +145,51 @@ export class MailService {
             { name: 'category', value: 'user-credentials' },
             { name: 'is_resend', value: isResend ? 'true' : 'false' },
           ],
+        }),
+      logKey,
+    );
+  }
+
+  async sendPasswordResetCodeMail(
+    params: SendPasswordResetCodeMailParams,
+  ): Promise<{ messageId: string }> {
+    const { to, name, code, expiresMinutes } = params;
+    const mailFrom = process.env.MAIL_FROM?.trim();
+    const fromName = process.env.MAIL_FROM_NAME?.trim() || 'Cotizador';
+    const subject = 'Código para restablecer tu contraseña — TuSistema';
+    const logKey = { to };
+
+    if (process.env.MAIL_ENABLED !== 'true') {
+      const messageId = `dev-noop-${randomUUID()}`;
+      this.logger.log({
+        msg: 'Correo de recuperación omitido (MAIL_ENABLED no es true)',
+        ...logKey,
+        messageId,
+      });
+      return { messageId };
+    }
+
+    this.assertMailConfigured(mailFrom, logKey);
+
+    const from = `"${fromName}" <${mailFrom}>`;
+    const html = renderPasswordResetCodeHtml({ name, code, expiresMinutes });
+
+    this.logger.log({
+      msg: 'Enviando correo vía Resend API',
+      provider: 'resend-api',
+      operation: 'sendPasswordResetCodeMail',
+      from,
+      ...logKey,
+    });
+
+    return this.dispatch(
+      () =>
+        this.resend.emails.send({
+          from,
+          to,
+          subject,
+          html,
+          tags: [{ name: 'category', value: 'password-reset' }],
         }),
       logKey,
     );

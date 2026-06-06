@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { PasswordResetCode } from '../entities/password-reset-code.entity';
 import { User } from '../entities/user.entity';
+import { MailModule } from '../mail/mail.module';
 import { UsersModule } from '../users/users.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -12,7 +14,8 @@ import { RolesGuard } from './roles.guard';
 @Module({
   imports: [
     UsersModule,
-    TypeOrmModule.forFeature([User]),
+    MailModule,
+    TypeOrmModule.forFeature([User, PasswordResetCode]),
     JwtModule.register({
       global: true,
       secret:
