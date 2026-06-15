@@ -4,7 +4,7 @@ import sharp from 'sharp';
 import type { Column, Content, TDocumentDefinitions } from 'pdfmake/interfaces';
 import type { CompanyResponseDto } from '../../company/dto/company-response.dto';
 import type { QuotationResponseDto } from '../dto/quotation-response.dto';
-import { COLORS, DEFAULT_TERMS, IVA_RATE } from './quotation-pdf.constants';
+import { COLORS, IVA_RATE } from './quotation-pdf.constants';
 import {
   buildQuoteNumber,
   formatCLP,
@@ -51,12 +51,14 @@ export class QuotationPdfService implements OnModuleInit {
   async generate(
     quotation: QuotationResponseDto,
     company: CompanyResponseDto,
+    terms: string[],
     userId: string,
   ): Promise<Buffer> {
     const logoImage = await this.resolveCompanyLogoDataUrl(company.logoUrl);
     const docDefinition = this.buildDocDefinition(
       quotation,
       company,
+      terms,
       logoImage,
     );
     const pm = pdfMake as PdfMakeInstance;
@@ -159,6 +161,7 @@ export class QuotationPdfService implements OnModuleInit {
   private buildDocDefinition(
     quotation: QuotationResponseDto,
     company: CompanyResponseDto,
+    terms: string[],
     logoImage?: string,
   ): TDocumentDefinitions {
     const quoteNumber = buildQuoteNumber(quotation.id);
@@ -256,7 +259,7 @@ export class QuotationPdfService implements OnModuleInit {
       },
     ]);
 
-    const termsList = [...DEFAULT_TERMS];
+    const termsList = [...terms];
     const mid = Math.ceil(termsList.length / 2);
     const leftTerms = termsList.slice(0, mid);
     const rightTerms = termsList.slice(mid);

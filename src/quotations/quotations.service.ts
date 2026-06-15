@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { DataSource, Repository } from 'typeorm';
 import { CompanyService } from '../company/company.service';
+import { CompanyTermsService } from '../company/company-terms.service';
 import type { QuotationStatus } from '../entities/quotation.entity';
 import { Quotation } from '../entities/quotation.entity';
 import { QuotationItem } from '../entities/quotation-item.entity';
@@ -40,6 +41,7 @@ export class QuotationsService {
     private readonly quotationsRepo: Repository<Quotation>,
     private readonly dataSource: DataSource,
     private readonly companyService: CompanyService,
+    private readonly companyTermsService: CompanyTermsService,
     private readonly quotationPdfService: QuotationPdfService,
     private readonly mailService: MailService,
     private readonly usersService: UsersService,
@@ -176,10 +178,12 @@ export class QuotationsService {
     const quotationDto = this.toResponse(quotation);
     const companyDto = this.companyService.toResponse(company);
     const quoteNumber = buildQuoteNumber(quotation.id);
+    const terms = await this.companyTermsService.resolveTermsForUser(userId);
 
     const pdfBuffer = await this.quotationPdfService.generate(
       quotationDto,
       companyDto,
+      terms,
       userId,
     );
 

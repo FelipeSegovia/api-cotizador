@@ -31,6 +31,7 @@ import type { Request, Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { JwtPayload } from '../auth/jwt-payload.type';
 import { CompanyService } from '../company/company.service';
+import { CompanyTermsService } from '../company/company-terms.service';
 import { CreateQuotationDto } from './dto/create-quotation.dto';
 import { QuotationResponseDto } from './dto/quotation-response.dto';
 import { UpdateQuotationDto } from './dto/update-quotation.dto';
@@ -49,6 +50,7 @@ export class QuotationsController {
   constructor(
     private readonly quotationsService: QuotationsService,
     private readonly companyService: CompanyService,
+    private readonly companyTermsService: CompanyTermsService,
     private readonly quotationPdfService: QuotationPdfService,
   ) {}
 
@@ -88,9 +90,13 @@ export class QuotationsController {
       req.user.sub,
       id,
     );
+    const terms = await this.companyTermsService.resolveTermsForUser(
+      req.user.sub,
+    );
     const buffer = await this.quotationPdfService.generate(
       quotation,
       this.companyService.toResponse(company),
+      terms,
       req.user.sub,
     );
     const quoteNumber = buildQuoteNumber(quotation.id);

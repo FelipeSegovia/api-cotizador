@@ -1,12 +1,9 @@
+import { DEFAULT_COMPANY_TERMS } from '../../company/default-company-terms.constants';
+
 /** IVA mostrado en el PDF (el total almacenado en BD es neto). */
 export const IVA_RATE = 0.19;
 
-export const DEFAULT_TERMS = [
-  'Validez de la oferta: 30 días desde la emisión.',
-  'Forma de pago: 50% al inicio, 50% al término.',
-  'Tiempos sujetos a aprobaciones del cliente.',
-  'Cambios fuera del alcance se cotizan aparte.',
-] as const;
+export const DEFAULT_TERMS = DEFAULT_COMPANY_TERMS;
 
 export const COLORS = {
   emerald: '#059669',

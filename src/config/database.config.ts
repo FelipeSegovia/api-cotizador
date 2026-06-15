@@ -1,6 +1,7 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import * as dotenv from 'dotenv';
 import { Company } from '../entities/company.entity';
+import { CompanyTerms } from '../entities/company-terms.entity';
 import { Feedback } from '../entities/feedback.entity';
 import { Quotation } from '../entities/quotation.entity';
 import { QuotationItem } from '../entities/quotation-item.entity';
@@ -22,6 +23,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
     QuotationItem,
     User,
     Company,
+    CompanyTerms,
     Feedback,
     PasswordResetCode,
   ],
