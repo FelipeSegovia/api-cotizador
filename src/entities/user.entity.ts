@@ -1,12 +1,16 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Company } from './company.entity';
 
-export type UserRole = 'admin' | 'common';
+export type UserRole = 'admin' | 'business' | 'common';
 
 @Entity('users')
 export class User {
@@ -33,6 +37,14 @@ export class User {
 
   @Column({ type: 'boolean', default: false })
   mustChangePassword!: boolean;
+
+  @Index('IDX_users_companyId')
+  @Column({ type: 'uuid', nullable: true })
+  companyId!: string | null;
+
+  @ManyToOne(() => Company, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'companyId' })
+  company!: Company | null;
 
   @CreateDateColumn()
   createdAt!: Date;

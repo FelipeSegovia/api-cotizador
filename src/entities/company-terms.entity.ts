@@ -6,7 +6,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { User } from './user.entity';
+import { Company } from './company.entity';
 
 @Entity('company_terms')
 export class CompanyTerms {
@@ -14,11 +14,11 @@ export class CompanyTerms {
   id!: string;
 
   @Column({ type: 'uuid', unique: true })
-  userId!: string;
+  companyId!: string;
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'userId' })
-  user!: User;
+  @ManyToOne(() => Company, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'companyId' })
+  company!: Company;
 
   @Column({ type: 'jsonb' })
   terms!: string[];

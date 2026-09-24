@@ -1,0 +1,2951 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api": {
+      "get": {
+        "operationId": "AppController_getHello",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Texto de bienvenida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Saludo / health léger",
+        "tags": [
+          "App"
+        ]
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "description": "Devuelve un JWT válido junto al resumen del usuario.",
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Credenciales válidas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginSuccessDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Credenciales inválidas"
+          },
+          "403": {
+            "description": "Cuenta deshabilitada (isActive = false)"
+          }
+        },
+        "summary": "Inicio de sesión",
+        "tags": [
+          "Autenticación"
+        ]
+      }
+    },
+    "/api/auth/accept-invitation": {
+      "post": {
+        "description": "Endpoint público. Crea el usuario con la contraseña elegida. No emite JWT; el cliente debe hacer login después.",
+        "operationId": "AuthController_acceptInvitation",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptInvitationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cuenta creada; el cliente debe ir a login",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptInvitationSuccessDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invitación no válida o ya utilizada"
+          },
+          "409": {
+            "description": "Email ya registrado"
+          }
+        },
+        "summary": "Aceptar invitación y crear cuenta",
+        "tags": [
+          "Autenticación"
+        ]
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "description": "Requiere el encabezado Authorization: Bearer <token>.",
+        "operationId": "AuthController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Usuario actual",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthUserSummaryDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Perfil del usuario autenticado",
+        "tags": [
+          "Autenticación"
+        ]
+      },
+      "patch": {
+        "description": "Actualmente permite establecer `mobilePhone`. Requiere Authorization: Bearer.",
+        "operationId": "AuthController_patchMe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Usuario actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthUserSummaryDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Actualizar perfil del usuario autenticado",
+        "tags": [
+          "Autenticación"
+        ]
+      }
+    },
+    "/api/auth/me/password": {
+      "patch": {
+        "description": "En primer login (mustChangePassword) no se exige currentPassword. Tras el cambio, mustChangePassword pasa a false.",
+        "operationId": "AuthController_patchPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Usuario actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthUserSummaryDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token inválido o contraseña actual incorrecta"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Cambiar contraseña del usuario autenticado",
+        "tags": [
+          "Autenticación"
+        ]
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "description": "En este BFF es informativo; invalidar JWT es responsabilidad del cliente.",
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Confirmación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutSuccessDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Cierre de sesión",
+        "tags": [
+          "Autenticación"
+        ]
+      }
+    },
+    "/api/auth/forgot-password": {
+      "post": {
+        "description": "Envía un código OTP al correo si la cuenta existe y está activa. Siempre responde con el mismo mensaje genérico.",
+        "operationId": "AuthController_forgotPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Solicitud procesada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgotPasswordSuccessDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Solicitar código de recuperación de contraseña",
+        "tags": [
+          "Autenticación"
+        ]
+      }
+    },
+    "/api/auth/verify-reset-code": {
+      "post": {
+        "description": "Valida el código sin consumirlo. El front puede usarlo para avanzar a la pantalla de nueva contraseña.",
+        "operationId": "AuthController_verifyResetCode",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyResetCodeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Código válido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyResetCodeSuccessDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Verificar código OTP de recuperación",
+        "tags": [
+          "Autenticación"
+        ]
+      }
+    },
+    "/api/auth/reset-password": {
+      "post": {
+        "description": "Valida el código nuevamente, lo consume y establece la nueva contraseña.",
+        "operationId": "AuthController_resetPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contraseña actualizada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResetPasswordSuccessDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Restablecer contraseña con código OTP",
+        "tags": [
+          "Autenticación"
+        ]
+      }
+    },
+    "/api/users": {
+      "get": {
+        "description": "Admin: todos (filtro opcional companyId). Business: solo su empresa.",
+        "operationId": "UsersController_findAll",
+        "parameters": [
+          {
+            "name": "companyId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserResponseDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "403": {
+            "description": "Sin permisos"
+          },
+          "422": {
+            "description": "Business sin empresa configurada"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Listar usuarios",
+        "tags": [
+          "Usuarios (Admin)"
+        ]
+      }
+    },
+    "/api/users/{id}": {
+      "patch": {
+        "operationId": "UsersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "403": {
+            "description": "Sin permisos"
+          },
+          "404": {
+            "description": "Usuario no encontrado"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Actualizar usuario",
+        "tags": [
+          "Usuarios (Admin)"
+        ]
+      }
+    },
+    "/api/users/{id}/status": {
+      "patch": {
+        "description": "Alterna el campo isActive del usuario.",
+        "operationId": "UsersController_toggleStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "403": {
+            "description": "Sin permisos"
+          },
+          "404": {
+            "description": "Usuario no encontrado"
+          },
+          "409": {
+            "description": "El actor intenta deshabilitarse a sí mismo"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Habilitar o deshabilitar usuario",
+        "tags": [
+          "Usuarios (Admin)"
+        ]
+      }
+    },
+    "/api/invitations": {
+      "post": {
+        "description": "Admin: companyId y role (business|common) obligatorios. Business: invita solo common a su empresa.",
+        "operationId": "InvitationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvitationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "403": {
+            "description": "Sin permisos"
+          },
+          "409": {
+            "description": "Email o invitación pendiente duplicada"
+          },
+          "422": {
+            "description": "Faltan companyId/role o el actor no tiene empresa"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Invitar usuario",
+        "tags": [
+          "Invitaciones"
+        ]
+      },
+      "get": {
+        "operationId": "InvitationsController_findAll",
+        "parameters": [
+          {
+            "name": "companyId",
+            "required": false,
+            "in": "query",
+            "description": "Filtro opcional (solo admin)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvitationResponseDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "403": {
+            "description": "Sin permisos"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Listar invitaciones pendientes",
+        "tags": [
+          "Invitaciones"
+        ]
+      }
+    },
+    "/api/invitations/{id}": {
+      "delete": {
+        "operationId": "InvitationsController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Revocada"
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "403": {
+            "description": "Sin permisos"
+          },
+          "404": {
+            "description": "Invitación no encontrada"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Revocar invitación pendiente",
+        "tags": [
+          "Invitaciones"
+        ]
+      }
+    },
+    "/api/companies": {
+      "get": {
+        "description": "Solo admin de plataforma.",
+        "operationId": "AdminCompaniesController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CompanyResponseDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "403": {
+            "description": "Rol distinto de admin"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Listar todas las empresas",
+        "tags": [
+          "Empresas (Admin)"
+        ]
+      },
+      "post": {
+        "description": "Crea una ficha de empresa sin dueño de producto. Luego se invita a un business.",
+        "operationId": "AdminCompaniesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertCompanyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "403": {
+            "description": "Rol distinto de admin"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Crear empresa",
+        "tags": [
+          "Empresas (Admin)"
+        ]
+      }
+    },
+    "/api/company": {
+      "get": {
+        "description": "Devuelve la ficha de empresa compartida asociada al usuario autenticado (vía companyId).",
+        "operationId": "CompanyController_findOne",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "404": {
+            "description": "Datos de empresa no configurados"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Obtener datos de empresa del usuario",
+        "tags": [
+          "Empresa"
+        ]
+      },
+      "put": {
+        "description": "Solo business. Acepta multipart/form-data con los campos de empresa y, opcionalmente, logo (PNG/JPG/GIF/WebP, máx. 5 MB). También acepta application/json sin archivo.",
+        "operationId": "CompanyController_upsert",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "rut"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Mi Empresa SpA"
+                  },
+                  "rut": {
+                    "type": "string",
+                    "example": "76.123.456-7"
+                  },
+                  "address": {
+                    "type": "string",
+                    "example": "Av. Principal 123"
+                  },
+                  "city": {
+                    "type": "string",
+                    "example": "Santiago"
+                  },
+                  "contact": {
+                    "type": "string",
+                    "example": "+56 9 1234 5678"
+                  },
+                  "logo": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "rut"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Mi Empresa SpA"
+                  },
+                  "rut": {
+                    "type": "string",
+                    "example": "76.123.456-7"
+                  },
+                  "address": {
+                    "type": "string",
+                    "example": "Av. Principal 123"
+                  },
+                  "city": {
+                    "type": "string",
+                    "example": "Santiago"
+                  },
+                  "contact": {
+                    "type": "string",
+                    "example": "+56 9 1234 5678"
+                  },
+                  "logo": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "422": {
+            "description": "Datos inválidos, sin empresa o imagen de logo no procesable"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Actualizar datos de empresa",
+        "tags": [
+          "Empresa"
+        ]
+      }
+    },
+    "/api/company/terms": {
+      "get": {
+        "description": "Devuelve los términos personalizados de la empresa del usuario autenticado. Si nunca se guardaron, responde la lista por defecto.",
+        "operationId": "CompanyTermsController_getTerms",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyTermsResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Obtener términos y condiciones de la empresa",
+        "tags": [
+          "Empresa"
+        ]
+      },
+      "put": {
+        "description": "Solo business. Reemplaza la lista completa de términos. Se descartan ítems vacíos tras trim; debe quedar al menos uno con contenido. Requiere empresa configurada.",
+        "operationId": "CompanyTermsController_updateTerms",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCompanyTermsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyTermsResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Body inválido o lista vacía tras sanitizar"
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "403": {
+            "description": "Rol distinto de business"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Actualizar términos y condiciones de la empresa",
+        "tags": [
+          "Empresa"
+        ]
+      }
+    },
+    "/api/clients": {
+      "get": {
+        "description": "Devuelve todos los clientes potenciales de la empresa del usuario autenticado.",
+        "operationId": "ClientsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClientResponseDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Listar clientes potenciales de la empresa",
+        "tags": [
+          "Clientes potenciales"
+        ]
+      },
+      "post": {
+        "description": "Crea un lead con estado not_contacted, contacts en false y actividad created.",
+        "operationId": "ClientsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClientDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "422": {
+            "description": "El usuario no tiene empresa configurada"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Crear cliente potencial",
+        "tags": [
+          "Clientes potenciales"
+        ]
+      }
+    },
+    "/api/clients/{id}": {
+      "patch": {
+        "description": "Actualiza campos parciales. Cambios de status o contacts generan actividades en el timeline.",
+        "operationId": "ClientsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClientDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "404": {
+            "description": "Cliente no encontrado"
+          },
+          "422": {
+            "description": "El usuario no tiene empresa configurada"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Actualizar cliente potencial",
+        "tags": [
+          "Clientes potenciales"
+        ]
+      },
+      "delete": {
+        "operationId": "ClientsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Eliminado"
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "404": {
+            "description": "Cliente no encontrado"
+          },
+          "422": {
+            "description": "El usuario no tiene empresa configurada"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Eliminar cliente potencial",
+        "tags": [
+          "Clientes potenciales"
+        ]
+      }
+    },
+    "/api/clients/{id}/activities": {
+      "post": {
+        "description": "Crea una actividad tipo note con createdByName del usuario autenticado.",
+        "operationId": "ClientsController_addActivity",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClientActivityDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "404": {
+            "description": "Cliente no encontrado"
+          },
+          "422": {
+            "description": "El usuario no tiene empresa configurada"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Agregar nota al timeline",
+        "tags": [
+          "Clientes potenciales"
+        ]
+      }
+    },
+    "/api/quotations": {
+      "get": {
+        "description": "Devuelve todas las cotizaciones de la empresa del usuario, ordenadas por fecha de creación descendente.",
+        "operationId": "QuotationsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QuotationResponseDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Listar cotizaciones de la empresa",
+        "tags": [
+          "Cotizaciones"
+        ]
+      },
+      "post": {
+        "description": "Crea una cotización para la empresa del usuario autenticado. Los subtotales y el total se recalculan en el servidor.",
+        "operationId": "QuotationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateQuotationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotationResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "422": {
+            "description": "El usuario no tiene empresa configurada"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Crear cotización",
+        "tags": [
+          "Cotizaciones"
+        ]
+      }
+    },
+    "/api/quotations/{id}/pdf": {
+      "get": {
+        "description": "Genera un PDF con el mismo estilo que la vista de cotización. Requiere datos de empresa configurados (PUT /api/company).",
+        "operationId": "QuotationsController_downloadPdf",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archivo PDF (descarga)"
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "404": {
+            "description": "Cotización no encontrada"
+          },
+          "422": {
+            "description": "Datos de empresa no configurados; configure con PUT /api/company"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Descargar PDF de la cotización",
+        "tags": [
+          "Cotizaciones"
+        ]
+      }
+    },
+    "/api/quotations/{id}": {
+      "get": {
+        "description": "Devuelve la cotización si pertenece a la empresa del usuario autenticado.",
+        "operationId": "QuotationsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotationResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "404": {
+            "description": "Cotización no encontrada"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Obtener cotización por id",
+        "tags": [
+          "Cotizaciones"
+        ]
+      },
+      "put": {
+        "description": "Reemplaza la cotización completa (incluyendo items) si pertenece a la empresa del usuario autenticado.",
+        "operationId": "QuotationsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateQuotationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotationResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "404": {
+            "description": "Cotización no encontrada"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Actualizar cotización por id",
+        "tags": [
+          "Cotizaciones"
+        ]
+      }
+    },
+    "/api/quotations/{id}/send": {
+      "post": {
+        "description": "Genera el PDF, lo envía al clientEmail con plantilla Handlebars vía Resend (SMTP) y marca la cotización como `sent` si estaba en `draft`. Permite reenvío si ya está en `sent`.",
+        "operationId": "QuotationsController_sendByEmail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotationResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "404": {
+            "description": "Cotización no encontrada"
+          },
+          "409": {
+            "description": "Estado no permite envío (approved, rejected o expired)"
+          },
+          "422": {
+            "description": "clientEmail ausente o empresa no configurada"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Enviar cotización por correo al cliente",
+        "tags": [
+          "Cotizaciones"
+        ]
+      }
+    },
+    "/api/quotations/{id}/status": {
+      "patch": {
+        "description": "Solo cotizaciones en estado `sent` y vigentes pueden pasar a `approved` o `rejected`.",
+        "operationId": "QuotationsController_updateStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateQuotationStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotationResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "404": {
+            "description": "Cotización no encontrada"
+          },
+          "409": {
+            "description": "No está en sent o ya está expirada"
+          },
+          "422": {
+            "description": "status distinto de approved o rejected"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Actualizar estado de la cotización (aprobada o rechazada)",
+        "tags": [
+          "Cotizaciones"
+        ]
+      }
+    },
+    "/api/feedback": {
+      "post": {
+        "description": "Crea un feedback asociado al usuario autenticado. El estado inicial es `pending`.",
+        "operationId": "FeedbackController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFeedbackDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Enviar sugerencia u opinión",
+        "tags": [
+          "Feedback"
+        ]
+      },
+      "get": {
+        "description": "Devuelve el feedback del usuario autenticado, ordenado por fecha de creación descendente.",
+        "operationId": "FeedbackController_findMine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FeedbackResponseDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Listar mis sugerencias",
+        "tags": [
+          "Feedback"
+        ]
+      }
+    },
+    "/api/feedback/all": {
+      "get": {
+        "description": "Listado global para el panel de administración. Filtros opcionales por `status`, `category` y `priority`.",
+        "operationId": "FeedbackController_findAll",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "reviewed",
+                "planned",
+                "done",
+                "rejected"
+              ]
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "idea",
+                "feature",
+                "improvement",
+                "complaint",
+                "opinion",
+                "bug",
+                "other"
+              ]
+            }
+          },
+          {
+            "name": "priority",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "high",
+                "medium",
+                "low"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FeedbackResponseDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "403": {
+            "description": "Rol distinto de admin"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Listar todo el feedback (admin)",
+        "tags": [
+          "Feedback"
+        ]
+      }
+    },
+    "/api/feedback/{id}": {
+      "get": {
+        "description": "Devuelve un feedback por ID para el modal de detalle del panel.",
+        "operationId": "FeedbackController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "403": {
+            "description": "Rol distinto de admin"
+          },
+          "404": {
+            "description": "Feedback no encontrado"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Obtener detalle de feedback (admin)",
+        "tags": [
+          "Feedback"
+        ]
+      }
+    },
+    "/api/feedback/{id}/priority": {
+      "patch": {
+        "description": "Cambia la prioridad: high, medium o low.",
+        "operationId": "FeedbackController_updatePriority",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFeedbackPriorityDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token ausente o inválido"
+          },
+          "403": {
+            "description": "Rol distinto de admin"
+          },
+          "404": {
+            "description": "Feedback no encontrado"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Actualizar prioridad del feedback (admin)",
+        "tags": [
+          "Feedback"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Cotizador API",
+    "description": "Contrato OpenAPI 3 para el front (`cotizador-app`).\n\nPrefijo global: `/api`. Auth: header `Authorization: Bearer <jwt>` (scheme `access-token`).\nJSON vivo: `GET /api/openapi.json`. UI: `/api/docs`.\nGuía de pantallas, roles y labels: `docs/contrato-front.md`.\n\nErrores: `{ statusCode, message, traceId? }`. `message` puede ser `string` o `string[]` (validación).\nMontos en CLP (número). Fechas de negocio `YYYY-MM-DD`; timestamps ISO-8601.",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "App",
+      "description": "Comprobaciones básicas del servicio"
+    },
+    {
+      "name": "Autenticación",
+      "description": "Login, perfil, logout, recuperación e invitaciones públicas"
+    },
+    {
+      "name": "Usuarios (Admin)",
+      "description": "Gestión de usuarios (admin de plataforma y business de empresa)"
+    },
+    {
+      "name": "Invitaciones",
+      "description": "Alta de usuarios por invitación (admin y business)"
+    },
+    {
+      "name": "Empresa",
+      "description": "Ficha y términos de la empresa del usuario autenticado"
+    },
+    {
+      "name": "Empresas (Admin)",
+      "description": "CRUD de empresas para admin de plataforma"
+    },
+    {
+      "name": "Cotizaciones",
+      "description": "CRUD, envío por correo y PDF (business y common)"
+    },
+    {
+      "name": "Clientes potenciales",
+      "description": "Leads y timeline de la empresa (business y common)"
+    },
+    {
+      "name": "Feedback",
+      "description": "Sugerencias de usuarios y panel admin"
+    }
+  ],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "access-token": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http",
+        "description": "Token obtenido en POST /api/auth/login"
+      }
+    },
+    "schemas": {
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "admin@ejemplo.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "description": "Contraseña del usuario",
+            "example": "********",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "AuthUserSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string"
+          },
+          "mobilePhone": {
+            "type": "string",
+            "description": "Teléfono de contacto",
+            "example": "+56912345678"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "business",
+              "common"
+            ]
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "mustChangePassword": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "mobilePhone",
+          "role",
+          "isActive",
+          "mustChangePassword",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "LoginSuccessDto": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/AuthUserSummaryDto"
+          },
+          "token": {
+            "type": "string",
+            "description": "JWT de acceso"
+          },
+          "expiresIn": {
+            "type": "number",
+            "description": "Segundos hasta la expiración del token",
+            "example": 900
+          }
+        },
+        "required": [
+          "user",
+          "token",
+          "expiresIn"
+        ]
+      },
+      "AcceptInvitationDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token en claro recibido en el correo de invitación"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "example": "MiClaveSegura1!"
+          },
+          "mobilePhone": {
+            "type": "string",
+            "example": "+56 9 1234 5678"
+          }
+        },
+        "required": [
+          "token",
+          "password"
+        ]
+      },
+      "AcceptInvitationSuccessDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Cuenta creada. Ya puedes iniciar sesión."
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "UpdateProfileDto": {
+        "type": "object",
+        "properties": {
+          "mobilePhone": {
+            "type": "string",
+            "description": "Teléfono de contacto; cadena vacía borra el valor",
+            "example": "+56912345678"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del usuario",
+            "example": "Juan"
+          }
+        }
+      },
+      "ChangePasswordDto": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "description": "Obligatoria si mustChangePassword es false; omitible en primer login"
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 8,
+            "example": "NuevaClave123!"
+          }
+        },
+        "required": [
+          "newPassword"
+        ]
+      },
+      "LogoutSuccessDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Logout exitoso"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "ForgotPasswordDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "usuario@ejemplo.cl"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "ForgotPasswordSuccessDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Si el correo existe en nuestro sistema, recibirás un código de verificación en breve."
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "VerifyResetCodeDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "usuario@ejemplo.cl"
+          },
+          "code": {
+            "type": "string",
+            "description": "Código OTP de 6 dígitos enviado al correo",
+            "example": "123456",
+            "minLength": 6,
+            "maxLength": 6
+          }
+        },
+        "required": [
+          "email",
+          "code"
+        ]
+      },
+      "VerifyResetCodeSuccessDto": {
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "valid"
+        ]
+      },
+      "ResetPasswordDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "usuario@ejemplo.cl"
+          },
+          "code": {
+            "type": "string",
+            "description": "Código OTP de 6 dígitos enviado al correo",
+            "example": "123456",
+            "minLength": 6,
+            "maxLength": 6
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 8,
+            "example": "NuevaClave123!"
+          }
+        },
+        "required": [
+          "email",
+          "code",
+          "newPassword"
+        ]
+      },
+      "ResetPasswordSuccessDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Contraseña actualizada correctamente"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "UserResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string"
+          },
+          "mobilePhone": {
+            "type": "string",
+            "example": "+56 9 1234 5678"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "business",
+              "common"
+            ]
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "mustChangePassword": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "mobilePhone",
+          "role",
+          "isActive",
+          "mustChangePassword",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateUserDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Nombre actualizado"
+          },
+          "mobilePhone": {
+            "type": "string",
+            "example": "+56 9 9999 8888"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "business",
+              "common"
+            ]
+          }
+        }
+      },
+      "CreateInvitationDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "nuevo@empresa.cl"
+          },
+          "name": {
+            "type": "string",
+            "example": "Ana Pérez"
+          },
+          "companyId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Obligatorio para admin. Business lo ignora (usa su empresa)."
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "business",
+              "common"
+            ],
+            "description": "Obligatorio para admin. Business siempre invita common (se ignora)."
+          }
+        },
+        "required": [
+          "email",
+          "name"
+        ]
+      },
+      "InvitationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "business",
+              "common"
+            ]
+          },
+          "companyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "acceptedAt": {
+            "type": "object",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "role",
+          "companyId",
+          "expiresAt",
+          "acceptedAt",
+          "createdAt"
+        ]
+      },
+      "CompanyResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "Mi Empresa SpA"
+          },
+          "rut": {
+            "type": "string",
+            "example": "76.123.456-7"
+          },
+          "address": {
+            "type": "object",
+            "example": "Av. Principal 123",
+            "nullable": true
+          },
+          "city": {
+            "type": "object",
+            "example": "Santiago",
+            "nullable": true
+          },
+          "contact": {
+            "type": "object",
+            "example": "+56 9 1234 5678",
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "object",
+            "example": "https://cotizador-storage.sfo3.digitaloceanspaces.com/companies/uuid/logo.webp",
+            "nullable": true,
+            "description": "URL pública del logo (WebP en Spaces)"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "rut",
+          "address",
+          "city",
+          "contact",
+          "logoUrl",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpsertCompanyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Mi Empresa SpA"
+          },
+          "rut": {
+            "type": "string",
+            "example": "76.123.456-7"
+          },
+          "address": {
+            "type": "string",
+            "example": "Av. Principal 123"
+          },
+          "city": {
+            "type": "string",
+            "example": "Santiago"
+          },
+          "contact": {
+            "type": "string",
+            "example": "+56 9 1234 5678"
+          }
+        },
+        "required": [
+          "name",
+          "rut"
+        ]
+      },
+      "CompanyTermsResponseDto": {
+        "type": "object",
+        "properties": {
+          "terms": {
+            "example": [
+              "Forma de pago: 50% al aceptar cotización, 50% al término de implementación.",
+              "Los precios están expresados en Pesos Chilenos (CLP)."
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "terms",
+          "updatedAt"
+        ]
+      },
+      "UpdateCompanyTermsDto": {
+        "type": "object",
+        "properties": {
+          "terms": {
+            "example": [
+              "Forma de pago: 50% al aceptar cotización, 50% al término de implementación.",
+              "Los precios están expresados en Pesos Chilenos (CLP)."
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "terms"
+        ]
+      },
+      "ClientContactsResponseDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "boolean"
+          },
+          "phone": {
+            "type": "boolean"
+          },
+          "whatsapp": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "email",
+          "phone",
+          "whatsapp"
+        ]
+      },
+      "ClientActivityResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "created",
+              "status_changed",
+              "channel_toggled",
+              "note"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdByName": {
+            "type": "object",
+            "nullable": true
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "message",
+          "createdAt"
+        ]
+      },
+      "ClientResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "Ana Torres"
+          },
+          "website": {
+            "type": "object",
+            "example": "https://anatorres.com",
+            "nullable": true
+          },
+          "email": {
+            "type": "object",
+            "example": "ana@anatorres.com",
+            "nullable": true
+          },
+          "phone": {
+            "type": "object",
+            "example": "+34 600 123 456",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "not_contacted",
+              "approved",
+              "rejected"
+            ]
+          },
+          "contacts": {
+            "$ref": "#/components/schemas/ClientContactsResponseDto"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "activities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClientActivityResponseDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "contacts",
+          "createdAt",
+          "updatedAt",
+          "activities"
+        ]
+      },
+      "CreateClientDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Ana Torres"
+          },
+          "website": {
+            "type": "string",
+            "example": "https://anatorres.com"
+          },
+          "email": {
+            "type": "string",
+            "example": "ana@anatorres.com"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+34 600 123 456"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateClientContactsDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "boolean"
+          },
+          "phone": {
+            "type": "boolean"
+          },
+          "whatsapp": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UpdateClientDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Ana Torres"
+          },
+          "website": {
+            "type": "object",
+            "example": "https://anatorres.com",
+            "nullable": true
+          },
+          "email": {
+            "type": "object",
+            "example": "ana@anatorres.com",
+            "nullable": true
+          },
+          "phone": {
+            "type": "object",
+            "example": "+34 600 123 456",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "not_contacted",
+              "approved",
+              "rejected"
+            ]
+          },
+          "contacts": {
+            "$ref": "#/components/schemas/UpdateClientContactsDto"
+          }
+        }
+      },
+      "CreateClientActivityDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Llamó y pidió propuesta formal."
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "QuotationItemResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "1777653994936-0"
+          },
+          "description": {
+            "type": "string",
+            "example": "Mano de obra"
+          },
+          "quantity": {
+            "type": "number",
+            "example": 1
+          },
+          "unitPrice": {
+            "type": "number",
+            "example": 2000000
+          },
+          "subtotal": {
+            "type": "number",
+            "example": 2000000
+          }
+        },
+        "required": [
+          "id",
+          "description",
+          "quantity",
+          "unitPrice",
+          "subtotal"
+        ]
+      },
+      "QuotationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clientName": {
+            "type": "string",
+            "example": "Constructora Carlos S.A"
+          },
+          "clientRut": {
+            "type": "object",
+            "example": "76.349.234-1",
+            "nullable": true
+          },
+          "clientEmail": {
+            "type": "object",
+            "example": "factura@constructoracarlos.cl",
+            "nullable": true
+          },
+          "projectTitle": {
+            "type": "object",
+            "example": "Renovación Casa",
+            "nullable": true
+          },
+          "projectDeadline": {
+            "type": "object",
+            "example": "2026-12-05",
+            "nullable": true
+          },
+          "projectNotes": {
+            "type": "object",
+            "example": "",
+            "nullable": true
+          },
+          "validUntil": {
+            "type": "object",
+            "example": "2026-06-30",
+            "nullable": true,
+            "description": "Validez de la oferta (solo fecha)."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "sent",
+              "approved",
+              "rejected",
+              "expired"
+            ],
+            "example": "draft"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuotationItemResponseDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "example": 2000000
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "clientName",
+          "clientRut",
+          "clientEmail",
+          "projectTitle",
+          "projectDeadline",
+          "projectNotes",
+          "validUntil",
+          "status",
+          "items",
+          "total",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "QuotationItemInputDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identificador del item generado por el cliente. Si se omite, el servidor genera uno.",
+            "example": "1777653994936-0"
+          },
+          "description": {
+            "type": "string",
+            "example": "Mano de obra"
+          },
+          "quantity": {
+            "type": "number",
+            "example": 1,
+            "minimum": 1
+          },
+          "subtotal": {
+            "type": "number",
+            "example": 1,
+            "minimum": 1
+          },
+          "unitPrice": {
+            "type": "number",
+            "example": 2000000,
+            "minimum": 0
+          }
+        },
+        "required": [
+          "description",
+          "quantity",
+          "subtotal",
+          "unitPrice"
+        ]
+      },
+      "CreateQuotationDto": {
+        "type": "object",
+        "properties": {
+          "clientName": {
+            "type": "string",
+            "example": "Constructora Carlos S.A"
+          },
+          "clientRut": {
+            "type": "string",
+            "example": "76.349.234-1"
+          },
+          "clientEmail": {
+            "type": "string",
+            "example": "factura@constructoracarlos.cl"
+          },
+          "projectTitle": {
+            "type": "string",
+            "example": "Renovación Casa"
+          },
+          "projectDeadline": {
+            "type": "string",
+            "example": "2026-12-05",
+            "description": "Fecha límite del proyecto (string libre, puede venir vacío)."
+          },
+          "projectNotes": {
+            "type": "string",
+            "example": ""
+          },
+          "validUntil": {
+            "type": "string",
+            "example": "2026-06-30",
+            "description": "Validez de la oferta (solo fecha ISO). Si la fecha ya pasó y el estado almacenado es borrador o enviado, la API expondrá el estado `expired`."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuotationItemInputDto"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "sent",
+              "approved",
+              "rejected",
+              "expired"
+            ],
+            "example": "draft",
+            "default": "draft"
+          }
+        },
+        "required": [
+          "clientName",
+          "items"
+        ]
+      },
+      "UpdateQuotationStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "rejected"
+            ],
+            "example": "approved"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "UpdateQuotationDto": {
+        "type": "object",
+        "properties": {
+          "clientName": {
+            "type": "string",
+            "example": "Constructora Carlos S.A"
+          },
+          "clientRut": {
+            "type": "string",
+            "example": "76.349.234-1"
+          },
+          "clientEmail": {
+            "type": "string",
+            "example": "factura@constructoracarlos.cl"
+          },
+          "projectTitle": {
+            "type": "string",
+            "example": "Renovación Casa"
+          },
+          "projectDeadline": {
+            "type": "string",
+            "example": "2026-12-05",
+            "description": "Fecha límite del proyecto (string libre, puede venir vacío)."
+          },
+          "projectNotes": {
+            "type": "string",
+            "example": ""
+          },
+          "validUntil": {
+            "type": "string",
+            "example": "2026-06-30",
+            "description": "Validez de la oferta (solo fecha ISO). Si la fecha ya pasó y el estado almacenado es borrador o enviado, la API expondrá el estado `expired`."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuotationItemInputDto"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "sent",
+              "approved",
+              "rejected",
+              "expired"
+            ],
+            "example": "draft",
+            "default": "draft"
+          }
+        },
+        "required": [
+          "clientName",
+          "items"
+        ]
+      },
+      "CreateFeedbackDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "Exportar cotizaciones a Excel",
+            "minLength": 3
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "idea",
+              "feature",
+              "improvement",
+              "complaint",
+              "opinion",
+              "bug",
+              "other"
+            ],
+            "example": "feature"
+          },
+          "description": {
+            "type": "string",
+            "example": "Sería útil poder exportar el listado de cotizaciones a Excel para reportes internos.",
+            "minLength": 10
+          }
+        },
+        "required": [
+          "title",
+          "category",
+          "description"
+        ]
+      },
+      "FeedbackResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userEmail": {
+            "type": "string",
+            "example": "usuario@ejemplo.cl"
+          },
+          "userName": {
+            "type": "string",
+            "example": "Felipe Segovia"
+          },
+          "title": {
+            "type": "string",
+            "example": "Exportar cotizaciones a Excel"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "idea",
+              "feature",
+              "improvement",
+              "complaint",
+              "opinion",
+              "bug",
+              "other"
+            ],
+            "example": "feature"
+          },
+          "description": {
+            "type": "string",
+            "example": "Sería útil poder exportar el listado de cotizaciones a Excel para reportes internos."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "reviewed",
+              "planned",
+              "done",
+              "rejected"
+            ],
+            "example": "pending"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "example": "medium"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "userEmail",
+          "title",
+          "category",
+          "description",
+          "status",
+          "priority",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateFeedbackPriorityDto": {
+        "type": "object",
+        "properties": {
+          "priority": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "example": "high"
+          }
+        },
+        "required": [
+          "priority"
+        ]
+      }
+    }
+  }
+}

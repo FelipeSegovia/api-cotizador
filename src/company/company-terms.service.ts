@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -19,14 +20,24 @@ export class CompanyTermsService {
   ) {}
 
   async getForUser(userId: string): Promise<CompanyTermsResponseDto> {
-    const record = await this.termsRepo.findOne({ where: { userId } });
+    const company = await this.companyService.findByUser(userId);
+    if (!company) {
+      return {
+        terms: [...DEFAULT_COMPANY_TERMS],
+        updatedAt: new Date(),
+      };
+    }
+
+    const record = await this.termsRepo.findOne({
+      where: { companyId: company.id },
+    });
     if (record) {
       return this.toResponse(record);
     }
 
     return {
       terms: [...DEFAULT_COMPANY_TERMS],
-      updatedAt: await this.resolveDefaultUpdatedAt(userId),
+      updatedAt: company.createdAt,
     };
   }
 
@@ -39,6 +50,13 @@ export class CompanyTermsService {
     userId: string,
     dto: UpdateCompanyTermsDto,
   ): Promise<CompanyTermsResponseDto> {
+    const company = await this.companyService.findByUser(userId);
+    if (!company) {
+      throw new UnprocessableEntityException(
+        'Debes configurar los datos de tu empresa antes de editar los términos.',
+      );
+    }
+
     const sanitized = this.sanitizeTerms(dto.terms);
     if (sanitized.length === 0) {
       throw new BadRequestException(
@@ -46,7 +64,9 @@ export class CompanyTermsService {
       );
     }
 
-    const existing = await this.termsRepo.findOne({ where: { userId } });
+    const existing = await this.termsRepo.findOne({
+      where: { companyId: company.id },
+    });
     if (existing) {
       await this.termsRepo.update(
         { id: existing.id },
@@ -59,7 +79,7 @@ export class CompanyTermsService {
     }
 
     const created = this.termsRepo.create({
-      userId,
+      companyId: company.id,
       terms: sanitized,
     });
     const saved = await this.termsRepo.save(created);
@@ -82,11 +102,6 @@ export class CompanyTermsService {
       result.push(trimmed);
     }
     return result;
-  }
-
-  private async resolveDefaultUpdatedAt(userId: string): Promise<Date> {
-    const company = await this.companyService.findByUser(userId);
-    return company?.createdAt ?? new Date();
   }
 
   private toResponse(record: CompanyTerms): CompanyTermsResponseDto {

@@ -37,6 +37,8 @@ describe('AuthService', () => {
     role: 'common' as const,
     isActive: true,
     mustChangePassword: false,
+    companyId: null as string | null,
+    company: null,
     createdAt: new Date('2026-01-15T10:00:00.000Z'),
     updatedAt: new Date('2026-05-01T12:00:00.000Z'),
   };

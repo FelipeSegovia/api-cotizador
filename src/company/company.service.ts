@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
 import { Repository } from 'typeorm';
 import { Company } from '../entities/company.entity';
+import { UsersService } from '../users/users.service';
 import { convertToWebp } from '../storage/image.util';
 import { StorageService } from '../storage/storage.service';
 import type { CompanyLogoUploadFile } from './company-logo-file';
@@ -27,10 +28,36 @@ export class CompanyService {
     @InjectRepository(Company)
     private readonly companyRepo: Repository<Company>,
     private readonly storage: StorageService,
+    private readonly usersService: UsersService,
   ) {}
 
+  async findAll(): Promise<CompanyResponseDto[]> {
+    const companies = await this.companyRepo.find({
+      order: { createdAt: 'DESC' },
+    });
+    return companies.map((c) => this.toResponse(c));
+  }
+
+  async createAsAdmin(dto: UpsertCompanyDto): Promise<CompanyResponseDto> {
+    const company = await this.companyRepo.save(
+      this.companyRepo.create({
+        userId: null,
+        name: dto.name.trim(),
+        rut: dto.rut.trim(),
+        address: dto.address?.trim() || null,
+        city: dto.city?.trim() || null,
+        contact: dto.contact?.trim() || null,
+      }),
+    );
+    return this.toResponse(company);
+  }
+
   async findByUser(userId: string): Promise<Company | null> {
-    return this.companyRepo.findOne({ where: { userId } });
+    const user = await this.usersService.findById(userId);
+    if (!user?.companyId) {
+      return null;
+    }
+    return this.companyRepo.findOne({ where: { id: user.companyId } });
   }
 
   async findByUserOrFail(userId: string): Promise<Company> {
@@ -56,39 +83,31 @@ export class CompanyService {
     dto: UpsertCompanyDto,
     options: UpsertCompanyOptions = {},
   ): Promise<CompanyResponseDto> {
-    const existing = await this.findByUser(userId);
     const address = dto.address?.trim() || null;
     const city = dto.city?.trim() || null;
     const contact = dto.contact?.trim() || null;
     const { logoFile } = options;
 
-    let company: Company;
-
-    if (existing) {
-      await this.companyRepo.update(
-        { id: existing.id },
-        {
-          name: dto.name.trim(),
-          rut: dto.rut.trim(),
-          address,
-          city,
-          contact,
-        },
+    const existing = await this.findByUser(userId);
+    if (!existing) {
+      throw new UnprocessableEntityException(
+        'La empresa debe ser creada por el administrador de plataforma.',
       );
-      company = await this.companyRepo.findOneOrFail({
-        where: { id: existing.id },
-      });
-    } else {
-      const created = this.companyRepo.create({
-        userId,
+    }
+
+    await this.companyRepo.update(
+      { id: existing.id },
+      {
         name: dto.name.trim(),
         rut: dto.rut.trim(),
         address,
         city,
         contact,
-      });
-      company = await this.companyRepo.save(created);
-    }
+      },
+    );
+    let company = await this.companyRepo.findOneOrFail({
+      where: { id: existing.id },
+    });
 
     if (logoFile) {
       company = await this.applyLogo(company, logoFile);

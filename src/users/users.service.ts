@@ -1,15 +1,14 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import * as bcrypt from 'bcrypt';
-import { randomBytes } from 'node:crypto';
 import { Repository } from 'typeorm';
 import { User, type UserRole } from '../entities/user.entity';
-import type { CreateUserDto } from './dto/create-user.dto';
 import type { UpdateUserDto } from './dto/update-user.dto';
 import type { UserResponseDto } from './dto/user-response.dto';
 import { toUserResponse } from './user.mapper';
@@ -38,8 +37,43 @@ export class UsersService {
     return user;
   }
 
-  findAll(): Promise<User[]> {
-    return this.userRepo.find({ order: { createdAt: 'DESC' } });
+  async assignCompany(userId: string, companyId: string): Promise<void> {
+    await this.userRepo.update(userId, { companyId });
+  }
+
+  async findAllForActor(
+    actorUserId: string,
+    companyIdFilter?: string,
+  ): Promise<User[]> {
+    const actor = await this.findByIdOrFail(actorUserId);
+
+    if (actor.role === 'admin') {
+      return this.userRepo.find({
+        where: companyIdFilter ? { companyId: companyIdFilter } : {},
+        order: { createdAt: 'DESC' },
+      });
+    }
+
+    if (actor.role === 'business') {
+      if (!actor.companyId) {
+        throw new UnprocessableEntityException(
+          'Debes configurar los datos de tu empresa antes de gestionar usuarios.',
+        );
+      }
+      if (companyIdFilter && companyIdFilter !== actor.companyId) {
+        throw new ForbiddenException(
+          'No puedes listar usuarios de otra empresa',
+        );
+      }
+      return this.userRepo.find({
+        where: { companyId: actor.companyId },
+        order: { createdAt: 'DESC' },
+      });
+    }
+
+    throw new ForbiddenException(
+      'No tienes permisos para realizar esta acción',
+    );
   }
 
   toResponse(user: User): UserResponseDto {
@@ -54,6 +88,7 @@ export class UsersService {
     role?: UserRole;
     isActive?: boolean;
     mustChangePassword?: boolean;
+    companyId?: string | null;
   }): Promise<User> {
     const user = this.userRepo.create({
       email: input.email.trim().toLowerCase(),
@@ -63,31 +98,23 @@ export class UsersService {
       role: input.role ?? 'common',
       isActive: input.isActive ?? true,
       mustChangePassword: input.mustChangePassword ?? false,
+      companyId: input.companyId ?? null,
     });
     return this.userRepo.save(user);
   }
 
-  async createAdminUser(dto: CreateUserDto): Promise<User> {
-    const normalized = dto.email.trim().toLowerCase();
-    const existing = await this.findByEmail(normalized);
-    if (existing) {
-      throw new ConflictException('Ya existe un usuario con ese email');
+  async update(
+    actorUserId: string,
+    id: string,
+    dto: UpdateUserDto,
+  ): Promise<User> {
+    const actor = await this.findByIdOrFail(actorUserId);
+    await this.findManagedUserOrFail(actor, id);
+
+    if (actor.role === 'business' && dto.role !== undefined) {
+      throw new ForbiddenException('No puedes cambiar el rol de un usuario');
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, 10);
-    return this.create({
-      email: normalized,
-      name: dto.name,
-      passwordHash,
-      mobilePhone: dto.mobilePhone,
-      role: dto.role,
-      isActive: true,
-      mustChangePassword: true,
-    });
-  }
-
-  async update(id: string, dto: UpdateUserDto): Promise<User> {
-    await this.findByIdOrFail(id);
     const updates: Partial<User> = {};
 
     if (dto.name !== undefined) {
@@ -101,7 +128,7 @@ export class UsersService {
       const v = dto.mobilePhone;
       updates.mobilePhone = v.trim() === '' ? null : v.trim().slice(0, 32);
     }
-    if (dto.role !== undefined) {
+    if (dto.role !== undefined && actor.role === 'admin') {
       updates.role = dto.role;
     }
 
@@ -112,11 +139,21 @@ export class UsersService {
     return this.findByIdOrFail(id);
   }
 
-  async toggleStatus(adminUserId: string, targetUserId: string): Promise<User> {
-    const user = await this.findByIdOrFail(targetUserId);
+  async toggleStatus(actorUserId: string, targetUserId: string): Promise<User> {
+    const actor = await this.findByIdOrFail(actorUserId);
+    const user = await this.findManagedUserOrFail(actor, targetUserId);
 
-    if (user.isActive && targetUserId === adminUserId) {
+    if (user.isActive && targetUserId === actorUserId) {
       throw new ConflictException('No puedes deshabilitar tu propia cuenta');
+    }
+
+    if (
+      actor.role === 'business' &&
+      (user.role === 'business' || user.role === 'admin')
+    ) {
+      throw new ForbiddenException(
+        'No puedes deshabilitar a otro administrador de empresa o de plataforma',
+      );
     }
 
     await this.userRepo.update(targetUserId, { isActive: !user.isActive });
@@ -130,11 +167,6 @@ export class UsersService {
   ): Promise<User> {
     await this.userRepo.update(userId, { passwordHash, mustChangePassword });
     return this.findByIdOrFail(userId);
-  }
-
-  generateProvisionalPassword(): string {
-    const base = randomBytes(12).toString('base64url');
-    return `Tmp${base.slice(0, 9)}!1`;
   }
 
   async updateProfile(
@@ -168,13 +200,33 @@ export class UsersService {
     return this.setPassword(userId, newPasswordHash, mustChangePassword);
   }
 
-  async resendProvisionalPassword(
-    id: string,
-  ): Promise<{ user: User; plainPassword: string }> {
-    await this.findByIdOrFail(id);
-    const plainPassword = this.generateProvisionalPassword();
-    const passwordHash = await bcrypt.hash(plainPassword, 10);
-    const user = await this.setPassword(id, passwordHash, true);
-    return { user, plainPassword };
+  private async findManagedUserOrFail(
+    actor: User,
+    targetUserId: string,
+  ): Promise<User> {
+    const user = await this.findById(targetUserId);
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    if (actor.role === 'admin') {
+      return user;
+    }
+
+    if (actor.role === 'business') {
+      if (!actor.companyId) {
+        throw new UnprocessableEntityException(
+          'Debes configurar los datos de tu empresa antes de gestionar usuarios.',
+        );
+      }
+      if (user.companyId !== actor.companyId) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
+      return user;
+    }
+
+    throw new ForbiddenException(
+      'No tienes permisos para realizar esta acción',
+    );
   }
 }

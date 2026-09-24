@@ -16,8 +16,8 @@ export class AuthUserSummaryDto {
   })
   mobilePhone!: string;
 
-  @ApiProperty({ enum: ['admin', 'common'] })
-  role!: 'admin' | 'common';
+  @ApiProperty({ enum: ['admin', 'business', 'common'] })
+  role!: 'admin' | 'business' | 'common';
 
   @ApiProperty()
   isActive!: boolean;
@@ -48,6 +48,11 @@ export class LoginSuccessDto {
 
 export class LogoutSuccessDto {
   @ApiProperty({ example: 'Logout exitoso' })
+  message!: string;
+}
+
+export class AcceptInvitationSuccessDto {
+  @ApiProperty({ example: 'Cuenta creada. Ya puedes iniciar sesión.' })
   message!: string;
 }
 

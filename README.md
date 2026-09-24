@@ -11,7 +11,25 @@ pnpm run migration:run
 pnpm run seed:user
 ```
 
-## Auth (contrato front)
+## Contrato para el front
+
+El front debe generar pantallas a partir de este contrato, no al revés.
+
+| Recurso | URL |
+|---------|-----|
+| Guía de UI (roles, labels, flujos, enums) | [`docs/contrato-front.md`](docs/contrato-front.md) |
+| OpenAPI JSON (tipos, required, ejemplos) | `http://localhost:3000/api/openapi.json` |
+| OpenAPI YAML | `http://localhost:3000/api/openapi.yaml` |
+| Swagger UI | `http://localhost:3000/api/docs` |
+| Copia estática del spec | [`docs/openapi.json`](docs/openapi.json) |
+
+Con la API levantada, regenerar la copia estática:
+
+```bash
+pnpm run openapi:export
+```
+
+Auth de sesión:
 
 | Método | Ruta | Descripción |
 |--------|------|--------------|

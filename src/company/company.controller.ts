@@ -27,6 +27,8 @@ import type { Request } from 'express';
 import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { JwtPayload } from '../auth/jwt-payload.type';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
 import { toCompanyLogoUploadFile } from './company-logo-file';
 import { CompanyService } from './company.service';
 import { CompanyResponseDto } from './dto/company-response.dto';
@@ -39,16 +41,17 @@ const LOGO_MIME_REGEX = /^image\/(png|jpeg|gif|webp)$/;
 
 @ApiTags('Empresa')
 @ApiBearerAuth('access-token')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('company')
 export class CompanyController {
   constructor(private readonly companyService: CompanyService) {}
 
   @Get()
+  @Roles('admin', 'business', 'common')
   @ApiOperation({
     summary: 'Obtener datos de empresa del usuario',
     description:
-      'Devuelve la ficha de empresa asociada al usuario autenticado (1-1).',
+      'Devuelve la ficha de empresa compartida asociada al usuario autenticado (vía companyId).',
   })
   @ApiOkResponse({ type: CompanyResponseDto })
   @ApiUnauthorizedResponse({ description: 'Token ausente o inválido' })
@@ -58,10 +61,11 @@ export class CompanyController {
   }
 
   @Put()
+  @Roles('business')
   @ApiOperation({
-    summary: 'Crear o actualizar datos de empresa',
+    summary: 'Actualizar datos de empresa',
     description:
-      'Acepta multipart/form-data con los campos de empresa y, opcionalmente, logo (PNG/JPG/GIF/WebP, máx. 5 MB). ' +
+      'Solo business. Acepta multipart/form-data con los campos de empresa y, opcionalmente, logo (PNG/JPG/GIF/WebP, máx. 5 MB). ' +
       'También acepta application/json sin archivo.',
   })
   @ApiConsumes('multipart/form-data', 'application/json')
@@ -82,7 +86,7 @@ export class CompanyController {
   @ApiOkResponse({ type: CompanyResponseDto })
   @ApiUnauthorizedResponse({ description: 'Token ausente o inválido' })
   @ApiUnprocessableEntityResponse({
-    description: 'Datos inválidos o imagen de logo no procesable',
+    description: 'Datos inválidos, sin empresa o imagen de logo no procesable',
   })
   @UseInterceptors(
     FileInterceptor('logo', {

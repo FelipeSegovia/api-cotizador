@@ -17,6 +17,8 @@ describe('JwtAuthGuard', () => {
     role: 'common' as const,
     isActive: true,
     mustChangePassword: false,
+    companyId: null as string | null,
+    company: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

@@ -21,7 +21,8 @@
     "migration:run": "pnpm exec typeorm-ts-node-commonjs migration:run -d src/data-source.ts",
     "migration:revert": "pnpm exec typeorm-ts-node-commonjs migration:revert -d src/data-source.ts",
     "seed:user": "pnpm exec ts-node -r tsconfig-paths/register src/scripts/seed-user.ts",
-    "seed:user:revert": "pnpm exec ts-node -r tsconfig-paths/register src/scripts/seed-user-revert.ts"
+    "seed:user:revert": "pnpm exec ts-node -r tsconfig-paths/register src/scripts/seed-user-revert.ts",
+    "openapi:export": "curl -sS http://localhost:3000/api/openapi.json -o docs/openapi.json"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1060.0",

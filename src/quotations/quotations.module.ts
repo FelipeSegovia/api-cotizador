@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
 import { CompanyModule } from '../company/company.module';
 import { Quotation } from '../entities/quotation.entity';
 import { QuotationItem } from '../entities/quotation-item.entity';
@@ -15,9 +16,14 @@ import { QuotationsService } from './quotations.service';
     TypeOrmModule.forFeature([Quotation, QuotationItem]),
     CompanyModule,
     MailModule,
-    UsersModule, // JwtAuthGuard requiere UsersService
+    UsersModule,
   ],
   controllers: [QuotationsController],
-  providers: [QuotationsService, QuotationPdfService, JwtAuthGuard],
+  providers: [
+    QuotationsService,
+    QuotationPdfService,
+    JwtAuthGuard,
+    RolesGuard,
+  ],
 })
 export class QuotationsModule {}

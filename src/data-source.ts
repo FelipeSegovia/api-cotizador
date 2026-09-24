@@ -1,8 +1,12 @@
 import { DataSource } from 'typeorm';
 import { join } from 'node:path';
 import { config } from 'dotenv';
+import { Client } from './entities/client.entity';
+import { ClientActivity } from './entities/client-activity.entity';
 import { Company } from './entities/company.entity';
+import { CompanyTerms } from './entities/company-terms.entity';
 import { Feedback } from './entities/feedback.entity';
+import { Invitation } from './entities/invitation.entity';
 import { Quotation } from './entities/quotation.entity';
 import { QuotationItem } from './entities/quotation-item.entity';
 import { PasswordResetCode } from './entities/password-reset-code.entity';
@@ -23,8 +27,12 @@ export const AppDataSource = new DataSource({
     QuotationItem,
     User,
     Company,
+    CompanyTerms,
+    Client,
+    ClientActivity,
     Feedback,
     PasswordResetCode,
+    Invitation,
   ],
   migrations: [join(__dirname, 'migrations', '*{.ts,.js}')],
   synchronize: false,

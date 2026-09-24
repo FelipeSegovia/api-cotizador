@@ -13,16 +13,22 @@ import { Throttle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiConflictResponse,
+  ApiForbiddenResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import type { Request } from 'express';
+import { AcceptInvitationDto } from '../invitations/dto/accept-invitation.dto';
+import { InvitationsService } from '../invitations/invitations.service';
 import { AuthService } from './auth.service';
 import type { JwtPayload } from './jwt-payload.type';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import {
+  AcceptInvitationSuccessDto,
   AuthUserSummaryDto,
   ForgotPasswordSuccessDto,
   LoginSuccessDto,
@@ -42,7 +48,10 @@ type RequestWithUser = Request & { user: JwtPayload };
 @ApiTags('Autenticación')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly invitationsService: InvitationsService,
+  ) {}
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -56,8 +65,30 @@ export class AuthController {
     type: LoginSuccessDto,
   })
   @ApiUnauthorizedResponse({ description: 'Credenciales inválidas' })
+  @ApiForbiddenResponse({
+    description: 'Cuenta deshabilitada (isActive = false)',
+  })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Post('accept-invitation')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @ApiOperation({
+    summary: 'Aceptar invitación y crear cuenta',
+    description:
+      'Endpoint público. Crea el usuario con la contraseña elegida. No emite JWT; el cliente debe hacer login después.',
+  })
+  @ApiBody({ type: AcceptInvitationDto })
+  @ApiOkResponse({
+    description: 'Cuenta creada; el cliente debe ir a login',
+    type: AcceptInvitationSuccessDto,
+  })
+  @ApiNotFoundResponse({ description: 'Invitación no válida o ya utilizada' })
+  @ApiConflictResponse({ description: 'Email ya registrado' })
+  acceptInvitation(@Body() dto: AcceptInvitationDto) {
+    return this.invitationsService.accept(dto);
   }
 
   @Get('me')

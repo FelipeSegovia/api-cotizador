@@ -13,8 +13,8 @@ export class UserResponseDto {
   @ApiProperty({ example: '+56 9 1234 5678' })
   mobilePhone!: string;
 
-  @ApiProperty({ enum: ['admin', 'common'] })
-  role!: 'admin' | 'common';
+  @ApiProperty({ enum: ['admin', 'business', 'common'] })
+  role!: 'admin' | 'business' | 'common';
 
   @ApiProperty()
   isActive!: boolean;

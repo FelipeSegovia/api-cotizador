@@ -10,6 +10,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { decimalNumberTransformer } from '../common/typeorm/decimal.transformer';
+import { Company } from './company.entity';
 import { QuotationItem } from './quotation-item.entity';
 import { User } from './user.entity';
 
@@ -32,6 +33,14 @@ export class Quotation {
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user!: User;
+
+  @Index('IDX_quotations_companyId')
+  @Column({ type: 'uuid' })
+  companyId!: string;
+
+  @ManyToOne(() => Company, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'companyId' })
+  company!: Company;
 
   @Column({ type: 'varchar', length: 255 })
   clientName!: string;

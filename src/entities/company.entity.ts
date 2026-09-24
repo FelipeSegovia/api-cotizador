@@ -14,12 +14,13 @@ export class Company {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'uuid', unique: true })
-  userId!: string;
+  /** Owner histórico; nullable cuando la empresa la crea el admin de plataforma. */
+  @Column({ type: 'uuid', nullable: true })
+  userId!: string | null;
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'CASCADE', nullable: true })
   @JoinColumn({ name: 'userId' })
-  user!: User;
+  user!: User | null;
 
   @Column({ type: 'varchar', length: 255 })
   name!: string;

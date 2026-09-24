@@ -17,6 +17,7 @@ import {
   isResendSandboxRecipientError,
 } from './mail-from.util';
 import type { QuotationMailContext } from './mail.types';
+import { renderInvitationHtml } from './invitation-mail.template';
 import { renderPasswordResetCodeHtml } from './password-reset-mail.template';
 import { renderQuotationSentHtml } from './quotation-mail.template';
 import { renderUserCredentialsHtml } from './user-credentials-mail.template';
@@ -35,6 +36,15 @@ export interface SendPasswordResetCodeMailParams {
   name: string;
   code: string;
   expiresMinutes: number;
+}
+
+export interface SendInvitationMailParams {
+  to: string;
+  name: string;
+  companyName: string;
+  roleLabel: string;
+  inviteUrl: string;
+  expiresDays: number;
 }
 
 @Injectable()
@@ -145,6 +155,59 @@ export class MailService {
             { name: 'category', value: 'user-credentials' },
             { name: 'is_resend', value: isResend ? 'true' : 'false' },
           ],
+        }),
+      logKey,
+    );
+  }
+
+  async sendInvitationMail(
+    params: SendInvitationMailParams,
+  ): Promise<{ messageId: string }> {
+    const { to, name, companyName, roleLabel, inviteUrl, expiresDays } =
+      params;
+    const mailFrom = process.env.MAIL_FROM?.trim();
+    const fromName = process.env.MAIL_FROM_NAME?.trim() || 'Cotizador';
+    const subject = `Invitación a ${companyName} — TuSistema`;
+    const logKey = { to, companyName };
+
+    if (process.env.MAIL_ENABLED !== 'true') {
+      const messageId = `dev-noop-${randomUUID()}`;
+      this.logger.log({
+        msg: 'Correo de invitación omitido (MAIL_ENABLED no es true)',
+        ...logKey,
+        messageId,
+        inviteUrl,
+      });
+      return { messageId };
+    }
+
+    this.assertMailConfigured(mailFrom, logKey);
+
+    const from = `"${fromName}" <${mailFrom}>`;
+    const html = renderInvitationHtml({
+      name,
+      companyName,
+      roleLabel,
+      inviteUrl,
+      expiresDays,
+    });
+
+    this.logger.log({
+      msg: 'Enviando correo vía Resend API',
+      provider: 'resend-api',
+      operation: 'sendInvitationMail',
+      from,
+      ...logKey,
+    });
+
+    return this.dispatch(
+      () =>
+        this.resend.emails.send({
+          from,
+          to,
+          subject,
+          html,
+          tags: [{ name: 'category', value: 'invitation' }],
         }),
       logKey,
     );

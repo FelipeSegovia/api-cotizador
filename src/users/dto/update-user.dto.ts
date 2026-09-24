@@ -15,8 +15,8 @@ export class UpdateUserDto {
   @Length(0, 32)
   mobilePhone?: string;
 
-  @ApiPropertyOptional({ enum: ['admin', 'common'] })
+  @ApiPropertyOptional({ enum: ['admin', 'business', 'common'] })
   @IsOptional()
-  @IsEnum(['admin', 'common'] as const)
+  @IsEnum(['admin', 'business', 'common'] as const)
   role?: UserRole;
 }

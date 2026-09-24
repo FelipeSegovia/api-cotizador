@@ -4,31 +4,14 @@ dotenv.config();
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { Logger } from 'nestjs-pino';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-
-const swaggerConfig = new DocumentBuilder()
-  .setTitle('Cotizador API')
-  .setDescription(
-    'API BFF para cotizaciones de proyectos (login JWT y próximos módulos).',
-  )
-  .setVersion('1.0')
-  .addBearerAuth(
-    {
-      type: 'http',
-      scheme: 'bearer',
-      bearerFormat: 'JWT',
-      description: 'Token obtenido en POST /api/auth/login',
-    },
-    'access-token',
-  )
-  .addTag('App', 'Comprobaciones básicas del servicio')
-  .addTag('Autenticación', 'Login, perfil y logout')
-  .addTag('Usuarios (Admin)', 'Gestión de usuarios para la beta (solo admin)')
-  .addTag('Empresa', 'Datos del emisor (1-1 con usuario), usados en PDF')
-  .addTag('Cotizaciones', 'CRUD de cotizaciones del usuario autenticado')
-  .addTag('Feedback', 'Sugerencias y opiniones de los usuarios')
-  .build();
+import {
+  OPENAPI_JSON_PATH,
+  OPENAPI_UI_PATH,
+  OPENAPI_YAML_PATH,
+  buildSwaggerConfig,
+} from './openapi/swagger.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -52,10 +35,15 @@ async function bootstrap() {
     }),
   );
 
-  const openApiDoc = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api/docs', app, openApiDoc, {
+  const openApiDoc = SwaggerModule.createDocument(app, buildSwaggerConfig());
+  SwaggerModule.setup(OPENAPI_UI_PATH, app, openApiDoc, {
+    jsonDocumentUrl: OPENAPI_JSON_PATH,
+    yamlDocumentUrl: OPENAPI_YAML_PATH,
+    customSiteTitle: 'Cotizador API',
     swaggerOptions: {
       persistAuthorization: true,
+      tagsSorter: 'alpha',
+      operationsSorter: 'alpha',
     },
   });
 

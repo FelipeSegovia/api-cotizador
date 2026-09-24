@@ -30,6 +30,8 @@ import {
 import type { Request, Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { JwtPayload } from '../auth/jwt-payload.type';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
 import { CompanyService } from '../company/company.service';
 import { CompanyTermsService } from '../company/company-terms.service';
 import { CreateQuotationDto } from './dto/create-quotation.dto';
@@ -44,7 +46,8 @@ type RequestWithUser = Request & { user: JwtPayload };
 
 @ApiTags('Cotizaciones')
 @ApiBearerAuth('access-token')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('business', 'common')
 @Controller('quotations')
 export class QuotationsController {
   constructor(
@@ -56,9 +59,9 @@ export class QuotationsController {
 
   @Get()
   @ApiOperation({
-    summary: 'Listar cotizaciones del usuario autenticado',
+    summary: 'Listar cotizaciones de la empresa',
     description:
-      'Devuelve todas las cotizaciones del usuario, ordenadas por fecha de creación descendente.',
+      'Devuelve todas las cotizaciones de la empresa del usuario, ordenadas por fecha de creación descendente.',
   })
   @ApiOkResponse({ type: [QuotationResponseDto] })
   @ApiUnauthorizedResponse({ description: 'Token ausente o inválido' })
@@ -110,7 +113,8 @@ export class QuotationsController {
   @Get(':id')
   @ApiOperation({
     summary: 'Obtener cotización por id',
-    description: 'Devuelve la cotización si pertenece al usuario autenticado.',
+    description:
+      'Devuelve la cotización si pertenece a la empresa del usuario autenticado.',
   })
   @ApiOkResponse({ type: QuotationResponseDto })
   @ApiUnauthorizedResponse({ description: 'Token ausente o inválido' })
@@ -127,11 +131,14 @@ export class QuotationsController {
   @ApiOperation({
     summary: 'Crear cotización',
     description:
-      'Crea una cotización para el usuario autenticado. Los subtotales y el total se recalculan en el servidor.',
+      'Crea una cotización para la empresa del usuario autenticado. Los subtotales y el total se recalculan en el servidor.',
   })
   @ApiBody({ type: CreateQuotationDto })
   @ApiCreatedResponse({ type: QuotationResponseDto })
   @ApiUnauthorizedResponse({ description: 'Token ausente o inválido' })
+  @ApiUnprocessableEntityResponse({
+    description: 'El usuario no tiene empresa configurada',
+  })
   create(
     @Req() req: RequestWithUser,
     @Body() dto: CreateQuotationDto,
@@ -190,7 +197,7 @@ export class QuotationsController {
   @ApiOperation({
     summary: 'Actualizar cotización por id',
     description:
-      'Reemplaza la cotización completa (incluyendo items) si pertenece al usuario autenticado.',
+      'Reemplaza la cotización completa (incluyendo items) si pertenece a la empresa del usuario autenticado.',
   })
   @ApiBody({ type: UpdateQuotationDto })
   @ApiOkResponse({ type: QuotationResponseDto })

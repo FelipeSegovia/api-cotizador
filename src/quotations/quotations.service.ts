@@ -48,8 +48,12 @@ export class QuotationsService {
   ) {}
 
   async findAllByUser(userId: string): Promise<QuotationResponseDto[]> {
+    const company = await this.companyService.findByUser(userId);
+    if (!company) {
+      return [];
+    }
     const quotations = await this.quotationsRepo.find({
-      where: { userId },
+      where: { companyId: company.id },
       order: { createdAt: 'DESC' },
     });
     return quotations.map((q) => this.toResponse(q));
@@ -59,12 +63,7 @@ export class QuotationsService {
     userId: string,
     id: string,
   ): Promise<QuotationResponseDto> {
-    const quotation = await this.quotationsRepo.findOne({
-      where: { id, userId },
-    });
-    if (!quotation) {
-      throw new NotFoundException('Cotización no encontrada');
-    }
+    const quotation = await this.findInCompanyOrFail(userId, id);
     return this.toResponse(quotation);
   }
 
@@ -72,11 +71,13 @@ export class QuotationsService {
     userId: string,
     dto: CreateQuotationDto,
   ): Promise<QuotationResponseDto> {
+    const company = await this.requireCompany(userId);
     const items = this.normalizeItems(dto.items);
     const total = this.calculateTotal(items);
 
     const quotation = this.quotationsRepo.create({
       userId,
+      companyId: company.id,
       clientName: dto.clientName,
       clientRut: dto.clientRut ?? null,
       clientEmail: dto.clientEmail ?? null,
@@ -98,12 +99,7 @@ export class QuotationsService {
     id: string,
     dto: UpdateQuotationDto,
   ): Promise<QuotationResponseDto> {
-    const existing = await this.quotationsRepo.findOne({
-      where: { id, userId },
-    });
-    if (!existing) {
-      throw new NotFoundException('Cotización no encontrada');
-    }
+    const existing = await this.findInCompanyOrFail(userId, id);
 
     const items = this.normalizeItems(dto.items);
     const total = this.calculateTotal(items);
@@ -139,22 +135,12 @@ export class QuotationsService {
       }
     });
 
-    const refreshed = await this.quotationsRepo.findOne({
-      where: { id, userId },
-    });
-    if (!refreshed) {
-      throw new NotFoundException('Cotización no encontrada');
-    }
+    const refreshed = await this.findInCompanyOrFail(userId, id);
     return this.toResponse(refreshed);
   }
 
   async sendByEmail(userId: string, id: string): Promise<QuotationResponseDto> {
-    const quotation = await this.quotationsRepo.findOne({
-      where: { id, userId },
-    });
-    if (!quotation) {
-      throw new NotFoundException('Cotización no encontrada');
-    }
+    const quotation = await this.findInCompanyOrFail(userId, id);
 
     if (!this.canSendByEmail(quotation)) {
       throw new ConflictException(
@@ -218,12 +204,7 @@ export class QuotationsService {
       messageId,
     });
 
-    const refreshed = await this.quotationsRepo.findOne({
-      where: { id, userId },
-    });
-    if (!refreshed) {
-      throw new NotFoundException('Cotización no encontrada');
-    }
+    const refreshed = await this.findInCompanyOrFail(userId, id);
     return this.toResponse(refreshed);
   }
 
@@ -232,12 +213,7 @@ export class QuotationsService {
     id: string,
     dto: UpdateQuotationStatusDto,
   ): Promise<QuotationResponseDto> {
-    const quotation = await this.quotationsRepo.findOne({
-      where: { id, userId },
-    });
-    if (!quotation) {
-      throw new NotFoundException('Cotización no encontrada');
-    }
+    const quotation = await this.findInCompanyOrFail(userId, id);
 
     if (!this.canAcceptClientStatus(quotation)) {
       throw new ConflictException('No está en sent o ya está expirada');
@@ -245,13 +221,32 @@ export class QuotationsService {
 
     await this.quotationsRepo.update({ id }, { status: dto.status });
 
-    const refreshed = await this.quotationsRepo.findOne({
-      where: { id, userId },
+    const refreshed = await this.findInCompanyOrFail(userId, id);
+    return this.toResponse(refreshed);
+  }
+
+  private async requireCompany(userId: string) {
+    const company = await this.companyService.findByUser(userId);
+    if (!company) {
+      throw new UnprocessableEntityException(
+        'Debes configurar los datos de tu empresa antes de gestionar cotizaciones.',
+      );
+    }
+    return company;
+  }
+
+  private async findInCompanyOrFail(
+    userId: string,
+    id: string,
+  ): Promise<Quotation> {
+    const company = await this.requireCompany(userId);
+    const quotation = await this.quotationsRepo.findOne({
+      where: { id, companyId: company.id },
     });
-    if (!refreshed) {
+    if (!quotation) {
       throw new NotFoundException('Cotización no encontrada');
     }
-    return this.toResponse(refreshed);
+    return quotation;
   }
 
   private canSendByEmail(quotation: Quotation): boolean {

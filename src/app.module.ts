@@ -9,8 +9,10 @@ import { AuthModule } from './auth/auth.module';
 import { AllExceptionsFilter } from './common/logging/all-exceptions.filter';
 import { buildLoggerParams } from './common/logging/logger-params';
 import { databaseConfig } from './config/database.config';
+import { ClientsModule } from './clients/clients.module';
 import { CompanyModule } from './company/company.module';
 import { FeedbackModule } from './feedback/feedback.module';
+import { InvitationsModule } from './invitations/invitations.module';
 import { QuotationsModule } from './quotations/quotations.module';
 import { UsersModule } from './users/users.module';
 
@@ -28,8 +30,10 @@ import { UsersModule } from './users/users.module';
     AuthModule,
     UsersModule,
     CompanyModule,
+    ClientsModule,
     QuotationsModule,
     FeedbackModule,
+    InvitationsModule,
   ],
   controllers: [AppController],
   providers: [

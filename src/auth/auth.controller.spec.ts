@@ -1,5 +1,6 @@
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
+import { InvitationsService } from '../invitations/invitations.service';
 import { USER_LOOKUP_PORT } from '../users/user-lookup.port';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -17,6 +18,9 @@ describe('AuthController', () => {
     verifyResetCode: jest.fn(),
     resetPassword: jest.fn(),
   };
+  const invitationsServiceMock = {
+    accept: jest.fn(),
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -24,6 +28,7 @@ describe('AuthController', () => {
       controllers: [AuthController],
       providers: [
         { provide: AuthService, useValue: authServiceMock },
+        { provide: InvitationsService, useValue: invitationsServiceMock },
         JwtAuthGuard,
         {
           provide: JwtService,
@@ -146,5 +151,16 @@ describe('AuthController', () => {
       message: 'Contraseña actualizada correctamente',
     });
     expect(authServiceMock.resetPassword).toHaveBeenCalledWith(dto);
+  });
+
+  it('acceptInvitation delega en InvitationsService', async () => {
+    invitationsServiceMock.accept.mockResolvedValue({
+      message: 'Cuenta creada. Ya puedes iniciar sesión.',
+    });
+    const dto = { token: 'tok', password: 'Secret123!' };
+    await expect(controller.acceptInvitation(dto)).resolves.toMatchObject({
+      message: expect.stringContaining('Cuenta creada'),
+    });
+    expect(invitationsServiceMock.accept).toHaveBeenCalledWith(dto);
   });
 });
