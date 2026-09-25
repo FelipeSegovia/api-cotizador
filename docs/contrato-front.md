@@ -299,18 +299,31 @@ Misma tenancy que cotizaciones: empresa, roles `business` y `common`. Admin → 
 | `id` | uuid | — | — | — |
 | `name` | string 1–255 | Nombre | input | requerido |
 | `website` | url \| null | Sitio web | url | opcional |
-| `email` | email \| null | Correo | email | opcional |
-| `phone` | string \| null | Teléfono | tel | opcional |
+| `emails` | email[] | Correos | lista de emails | opcional (máx. 10) |
+| `phones` | string[] | Teléfonos | lista de tels | opcional (máx. 10, cada uno 1–64) |
+| `tags` | string[] | Etiquetas | chips / multi | opcional (máx. 20, cada uno 1–40) |
 | `status` | enum | Estado | select / pipeline | al crear siempre `not_contacted` |
 | `contacts` | objeto bool | Canales contactados | 3 switches | al crear todo `false` |
 | `activities` | array | Timeline | lista cronológica | al crear: actividad `created` |
 | `createdAt` / `updatedAt` | date-time | — | — | — |
+
+`emails` y `phones` reemplazan los antiguos campos únicos `email` / `phone`. El front debe usar siempre los arreglos.
+
+#### Tags
+
+- Lista libre por cliente (sin catálogo).
+- Normalización en servidor: trim, minúsculas, espacios internos → guion.
+- Patrón: `^[a-z0-9]+(?:-[a-z0-9]+)*$` (ej. `matriculas`, `rondas-app`).
+- Deduplicados. En `PATCH`, enviar `tags` reemplaza la lista; omitir no la toca; `[]` la vacía.
+- Cambiar tags / emails / phones **no** genera actividad en el timeline.
 
 ### Estados del lead
 
 | Valor | Label |
 |-------|-------|
 | `not_contacted` | Sin contactar |
+| `pending` | Pendiente |
+| `no_answer` | No contesta |
 | `approved` | Aprobado |
 | `rejected` | Rechazado |
 
@@ -338,7 +351,7 @@ Un `PATCH` que cambie `status` o un canal genera actividad automática en `activ
 | `type` | Label | `meta` |
 |--------|-------|--------|
 | `created` | Creado | `null` |
-| `status_changed` | Cambio de estado | `{ "from": "not_contacted", "to": "approved" }` |
+| `status_changed` | Cambio de estado | `{ "from": "not_contacted", "to": "pending" }` |
 | `channel_toggled` | Canal | `{ "channel": "email" \| "phone" \| "whatsapp", "value": true }` |
 | `note` | Nota | `null` |
 
@@ -346,13 +359,15 @@ Un `PATCH` que cambie `status` o un canal genera actividad automática en `activ
 
 | Método | Ruta | UI |
 |--------|------|-----|
-| GET | `/api/clients` | Kanban / tabla. Cada ítem trae `activities` |
-| POST | `/api/clients` | Alta. Solo `name` + opcionales de contacto. 201 |
-| PATCH | `/api/clients/:id` | Edición parcial (nombre, web, email, phone, status, contacts) |
+| GET | `/api/clients` | Kanban / tabla. Cada ítem trae `activities`. Query opcional `tag` (repetible): OR sobre tags |
+| POST | `/api/clients` | Alta. `name` + opcionales (`website`, `emails`, `phones`, `tags`). 201 |
+| PATCH | `/api/clients/:id` | Edición parcial (`name`, `website`, `emails`, `phones`, `tags`, `status`, `contacts`) |
 | DELETE | `/api/clients/:id` | Eliminar (204 sin body) |
 | POST | `/api/clients/:id/activities` | Agregar nota. Body `{ "message": "…" }` 1–5000. Devuelve el **cliente completo** |
 
-En `PATCH`, string vacío en `website` / `email` / `phone` se guarda como `null`.
+Ejemplos de query: `GET /api/clients?tag=matriculas` o `GET /api/clients?tag=matriculas&tag=rondas-app` (clientes con **al menos uno** de esos tags).
+
+En `PATCH`, string vacío en `website` se guarda como `null`. `emails` / `phones` / `tags` se reemplazan enteros si vienen en el body.
 
 ---
 

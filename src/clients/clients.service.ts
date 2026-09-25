@@ -17,16 +17,24 @@ import {
   type ClientStatus,
 } from '../entities/client.entity';
 import { UsersService } from '../users/users.service';
+import {
+  normalizeEmails,
+  normalizePhones,
+  normalizeTags,
+} from './client-fields.util';
 import { toClientResponse } from './client.mapper';
 import type { CreateClientActivityDto } from './dto/create-client-activity.dto';
 import type { CreateClientDto } from './dto/create-client.dto';
 import type { ClientResponseDto } from './dto/client-response.dto';
+import type { FindClientsQueryDto } from './dto/find-clients-query.dto';
 import type { UpdateClientDto } from './dto/update-client.dto';
 
 type ClientContactChannel = keyof ClientContacts;
 
 const STATUS_LABELS: Record<ClientStatus, string> = {
   not_contacted: 'Sin contactar',
+  pending: 'Pendiente',
+  no_answer: 'No contesta',
   approved: 'Aprobado',
   rejected: 'Rechazado',
 };
@@ -55,17 +63,31 @@ export class ClientsService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async findAll(userId: string): Promise<ClientResponseDto[]> {
+  async findAll(
+    userId: string,
+    query: FindClientsQueryDto = {},
+  ): Promise<ClientResponseDto[]> {
     const company = await this.companyService.findByUser(userId);
     if (!company) {
       return [];
     }
 
-    const clients = await this.clientsRepo.find({
-      where: { companyId: company.id },
-      order: { createdAt: 'DESC' },
-      relations: ['activities'],
-    });
+    const qb = this.clientsRepo
+      .createQueryBuilder('client')
+      .leftJoinAndSelect('client.activities', 'activities')
+      .where('client.companyId = :companyId', { companyId: company.id })
+      .orderBy('client.createdAt', 'DESC');
+
+    const filterTags = query.tag?.length
+      ? normalizeTags(query.tag)
+      : [];
+    if (filterTags.length > 0) {
+      qb.andWhere('client.tags && ARRAY[:...filterTags]::text[]', {
+        filterTags,
+      });
+    }
+
+    const clients = await qb.getMany();
     return clients.map(toClientResponse);
   }
 
@@ -84,8 +106,9 @@ export class ClientsService {
         createdByUserId: userId,
         name: dto.name,
         website: dto.website ?? null,
-        email: dto.email ?? null,
-        phone: dto.phone ?? null,
+        emails: normalizeEmails(dto.emails ?? []),
+        phones: normalizePhones(dto.phones ?? []),
+        tags: normalizeTags(dto.tags ?? []),
         status: 'not_contacted',
         contacts: { ...DEFAULT_CLIENT_CONTACTS },
       });
@@ -116,8 +139,9 @@ export class ClientsService {
     const updates: {
       name?: string;
       website?: string | null;
-      email?: string | null;
-      phone?: string | null;
+      emails?: string[];
+      phones?: string[];
+      tags?: string[];
       status?: ClientStatus;
       contacts?: ClientContacts;
     } = {};
@@ -133,11 +157,14 @@ export class ClientsService {
     if (dto.website !== undefined) {
       updates.website = dto.website;
     }
-    if (dto.email !== undefined) {
-      updates.email = dto.email;
+    if (dto.emails !== undefined) {
+      updates.emails = normalizeEmails(dto.emails);
     }
-    if (dto.phone !== undefined) {
-      updates.phone = dto.phone;
+    if (dto.phones !== undefined) {
+      updates.phones = normalizePhones(dto.phones);
+    }
+    if (dto.tags !== undefined) {
+      updates.tags = normalizeTags(dto.tags);
     }
 
     if (dto.status !== undefined && dto.status !== client.status) {

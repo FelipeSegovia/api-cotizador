@@ -14,6 +14,14 @@ import { ClientsService } from './clients.service';
 describe('ClientsService', () => {
   let service: ClientsService;
 
+  const qbMock = {
+    leftJoinAndSelect: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    getMany: jest.fn(),
+  };
+
   const clientsRepoMock = {
     find: jest.fn(),
     findOne: jest.fn(),
@@ -21,6 +29,7 @@ describe('ClientsService', () => {
     save: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    createQueryBuilder: jest.fn(() => qbMock),
   };
   const activitiesRepoMock = {
     create: jest.fn((x) => x),
@@ -53,8 +62,9 @@ describe('ClientsService', () => {
     createdByUserId: 'u1',
     name: 'Ana Torres',
     website: null,
-    email: null,
-    phone: null,
+    emails: [],
+    phones: [],
+    tags: [],
     status: 'not_contacted',
     contacts: { email: false, phone: false, whatsapp: false },
     activities: [],
@@ -111,6 +121,10 @@ describe('ClientsService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    qbMock.leftJoinAndSelect.mockReturnThis();
+    qbMock.where.mockReturnThis();
+    qbMock.andWhere.mockReturnThis();
+    qbMock.orderBy.mockReturnThis();
     const dataSourceMock = mockTransaction();
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -136,10 +150,25 @@ describe('ClientsService', () => {
 
     it('lista clientes de la empresa', async () => {
       companyServiceMock.findByUser.mockResolvedValue(company);
-      clientsRepoMock.find.mockResolvedValue([baseClient]);
+      qbMock.getMany.mockResolvedValue([baseClient]);
       const result = await service.findAll('u1');
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('Ana Torres');
+      expect(result[0].emails).toEqual([]);
+      expect(result[0].tags).toEqual([]);
+      expect(qbMock.andWhere).not.toHaveBeenCalled();
+    });
+
+    it('filtra por tag con operador OR (&&)', async () => {
+      companyServiceMock.findByUser.mockResolvedValue(company);
+      qbMock.getMany.mockResolvedValue([
+        { ...baseClient, tags: ['matriculas'] },
+      ]);
+      await service.findAll('u1', { tag: ['Matriculas', 'rondas-app'] });
+      expect(qbMock.andWhere).toHaveBeenCalledWith(
+        'client.tags && ARRAY[:...filterTags]::text[]',
+        { filterTags: ['matriculas', 'rondas-app'] },
+      );
     });
   });
 
@@ -156,6 +185,60 @@ describe('ClientsService', () => {
       const result = await service.create('u1', { name: 'Ana Torres' });
       expect(result.name).toBe('Ana Torres');
       expect(result.activities[0]?.type).toBe('created');
+    });
+
+    it('normaliza tags, emails y phones al crear', async () => {
+      companyServiceMock.findByUser.mockResolvedValue(company);
+
+      let createdPayload: Record<string, unknown> | undefined;
+      const manager = {
+        getRepository: jest.fn((entity: unknown) => {
+          if (entity === Client) {
+            return {
+              create: jest.fn((x: Record<string, unknown>) => {
+                createdPayload = x;
+                return { ...x, id: 'client-1' };
+              }),
+              save: jest.fn(async (x) => ({
+                ...baseClient,
+                ...x,
+                id: 'client-1',
+              })),
+              findOne: jest.fn(async () => ({
+                ...baseClient,
+                emails: ['Ana@Anatorres.com'],
+                phones: ['+34 600 123 456'],
+                tags: ['rondas-app', 'matriculas'],
+                activities: [],
+              })),
+            };
+          }
+          return {
+            create: jest.fn((x) => x),
+            save: jest.fn(async (x) => x),
+          };
+        }),
+      };
+      (service as unknown as { dataSource: DataSource }).dataSource = {
+        transaction: jest.fn(async (cb: (m: typeof manager) => unknown) =>
+          cb(manager),
+        ),
+      } as unknown as DataSource;
+
+      await service.create('u1', {
+        name: 'Ana',
+        emails: ['Ana@Anatorres.com', 'ana@anatorres.com'],
+        phones: ['+34 600 123 456', '+34 600 123 456'],
+        tags: ['Rondas App', 'matriculas', 'matriculas'],
+      });
+
+      expect(createdPayload).toEqual(
+        expect.objectContaining({
+          emails: ['Ana@Anatorres.com'],
+          phones: ['+34 600 123 456'],
+          tags: ['rondas-app', 'matriculas'],
+        }),
+      );
     });
   });
 
@@ -237,6 +320,108 @@ describe('ClientsService', () => {
         ]),
       );
       expect(result.status).toBe('approved');
+    });
+
+    it('genera status_changed con labels de pending y no_answer', async () => {
+      companyServiceMock.findByUser.mockResolvedValue(company);
+      clientsRepoMock.findOne.mockResolvedValue({ ...baseClient });
+
+      const activityCreates: unknown[] = [];
+      let updatePayload: Record<string, unknown> | undefined;
+      const manager = {
+        getRepository: jest.fn((entity: unknown) => {
+          if (entity === Client) {
+            return {
+              update: jest.fn((_where, data) => {
+                updatePayload = data;
+              }),
+              findOne: jest.fn(async () => ({
+                ...baseClient,
+                status: 'pending',
+                activities: [],
+              })),
+            };
+          }
+          return {
+            create: jest.fn((x) => {
+              activityCreates.push(x);
+              return x;
+            }),
+            save: jest.fn(async (x) => x),
+          };
+        }),
+      };
+
+      (service as unknown as { dataSource: DataSource }).dataSource = {
+        transaction: jest.fn(async (cb: (m: typeof manager) => unknown) =>
+          cb(manager),
+        ),
+      } as unknown as DataSource;
+
+      await service.update('u1', 'client-1', { status: 'pending' });
+
+      expect(updatePayload).toEqual(
+        expect.objectContaining({ status: 'pending' }),
+      );
+      expect(activityCreates).toEqual([
+        expect.objectContaining({
+          type: 'status_changed',
+          message: 'Estado cambiado de Sin contactar a Pendiente',
+          meta: { from: 'not_contacted', to: 'pending' },
+        }),
+      ]);
+    });
+
+    it('actualiza tags/emails/phones sin actividad', async () => {
+      companyServiceMock.findByUser.mockResolvedValue(company);
+      clientsRepoMock.findOne.mockResolvedValue({ ...baseClient });
+
+      const activityCreates: unknown[] = [];
+      let updatePayload: Record<string, unknown> | undefined;
+      const manager = {
+        getRepository: jest.fn((entity: unknown) => {
+          if (entity === Client) {
+            return {
+              update: jest.fn((_where, data) => {
+                updatePayload = data;
+              }),
+              findOne: jest.fn(async () => ({
+                ...baseClient,
+                emails: ['a@test.com'],
+                phones: ['123'],
+                tags: ['matriculas'],
+                activities: [],
+              })),
+            };
+          }
+          return {
+            create: jest.fn((x) => {
+              activityCreates.push(x);
+              return x;
+            }),
+            save: jest.fn(async (x) => x),
+          };
+        }),
+      };
+
+      (service as unknown as { dataSource: DataSource }).dataSource = {
+        transaction: jest.fn(async (cb: (m: typeof manager) => unknown) =>
+          cb(manager),
+        ),
+      } as unknown as DataSource;
+
+      await service.update('u1', 'client-1', {
+        emails: ['a@test.com'],
+        phones: ['123'],
+        tags: ['Matriculas'],
+      });
+
+      expect(updatePayload).toEqual({
+        emails: ['a@test.com'],
+        phones: ['123'],
+        tags: ['matriculas'],
+      });
+      expect(activityCreates).toHaveLength(0);
     });
 
     it('no genera actividad si el canal no cambia', async () => {

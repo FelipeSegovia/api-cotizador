@@ -46,14 +46,22 @@ describe('ClientsController', () => {
     },
   };
 
-  it('findAll delega en el servicio', async () => {
+  it('findAll delega en el servicio con query', async () => {
     clientsServiceMock.findAll.mockResolvedValue([]);
-    await expect(controller.findAll(req as never)).resolves.toEqual([]);
-    expect(clientsServiceMock.findAll).toHaveBeenCalledWith('u1');
+    const query = { tag: ['matriculas'] };
+    await expect(
+      controller.findAll(req as never, query),
+    ).resolves.toEqual([]);
+    expect(clientsServiceMock.findAll).toHaveBeenCalledWith('u1', query);
   });
 
   it('create delega en el servicio', async () => {
-    const dto = { name: 'Ana' };
+    const dto = {
+      name: 'Ana',
+      emails: ['ana@test.com'],
+      phones: ['123'],
+      tags: ['matriculas'],
+    };
     clientsServiceMock.create.mockResolvedValue({ id: '1', name: 'Ana' });
     await controller.create(req as never, dto);
     expect(clientsServiceMock.create).toHaveBeenCalledWith('u1', dto);

@@ -32,8 +32,9 @@ export function toClientResponse(client: Client): ClientResponseDto {
     id: client.id,
     name: client.name,
     website: client.website,
-    email: client.email,
-    phone: client.phone,
+    emails: client.emails ?? [],
+    phones: client.phones ?? [],
+    tags: client.tags ?? [],
     status: client.status,
     contacts: {
       email: Boolean(client.contacts?.email),

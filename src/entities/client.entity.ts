@@ -13,7 +13,12 @@ import { Company } from './company.entity';
 import { ClientActivity } from './client-activity.entity';
 import { User } from './user.entity';
 
-export type ClientStatus = 'not_contacted' | 'approved' | 'rejected';
+export type ClientStatus =
+  | 'not_contacted'
+  | 'pending'
+  | 'no_answer'
+  | 'approved'
+  | 'rejected';
 
 export interface ClientContacts {
   email: boolean;
@@ -53,11 +58,14 @@ export class Client {
   @Column({ type: 'varchar', length: 500, nullable: true })
   website!: string | null;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  email!: string | null;
+  @Column({ type: 'text', array: true, default: '{}' })
+  emails!: string[];
 
-  @Column({ type: 'varchar', length: 64, nullable: true })
-  phone!: string | null;
+  @Column({ type: 'text', array: true, default: '{}' })
+  phones!: string[];
+
+  @Column({ type: 'text', array: true, default: '{}' })
+  tags!: string[];
 
   @Column({ type: 'varchar', length: 32, default: 'not_contacted' })
   status!: ClientStatus;

@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -33,6 +34,7 @@ import { ClientsService } from './clients.service';
 import { CreateClientActivityDto } from './dto/create-client-activity.dto';
 import { CreateClientDto } from './dto/create-client.dto';
 import { ClientResponseDto } from './dto/client-response.dto';
+import { FindClientsQueryDto } from './dto/find-clients-query.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 
 type RequestWithUser = Request & { user: JwtPayload };
@@ -49,12 +51,15 @@ export class ClientsController {
   @ApiOperation({
     summary: 'Listar clientes potenciales de la empresa',
     description:
-      'Devuelve todos los clientes potenciales de la empresa del usuario autenticado.',
+      'Devuelve todos los clientes potenciales de la empresa del usuario autenticado. Query opcional `tag` (repetible) filtra por OR.',
   })
   @ApiOkResponse({ type: [ClientResponseDto] })
   @ApiUnauthorizedResponse({ description: 'Token ausente o inválido' })
-  findAll(@Req() req: RequestWithUser): Promise<ClientResponseDto[]> {
-    return this.clientsService.findAll(req.user.sub);
+  findAll(
+    @Req() req: RequestWithUser,
+    @Query() query: FindClientsQueryDto,
+  ): Promise<ClientResponseDto[]> {
+    return this.clientsService.findAll(req.user.sub, query);
   }
 
   @Post()

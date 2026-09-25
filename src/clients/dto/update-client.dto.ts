@@ -1,6 +1,8 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsEmail,
   IsEnum,
@@ -13,6 +15,8 @@ import type { ClientStatus } from '../../entities/client.entity';
 
 export const CLIENT_STATUSES: ClientStatus[] = [
   'not_contacted',
+  'pending',
+  'no_answer',
   'approved',
   'rejected',
 ];
@@ -57,18 +61,37 @@ export class UpdateClientDto {
   @Length(1, 500)
   website?: string | null;
 
-  @ApiPropertyOptional({ example: 'ana@anatorres.com', nullable: true })
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['ana@anatorres.com'],
+  })
   @IsOptional()
-  @Transform(({ value }) => emptyToNull(value))
-  @IsEmail()
-  email?: string | null;
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsEmail({}, { each: true })
+  emails?: string[];
 
-  @ApiPropertyOptional({ example: '+34 600 123 456', nullable: true })
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['+34 600 123 456'],
+  })
   @IsOptional()
-  @Transform(({ value }) => emptyToNull(value))
-  @IsString()
-  @Length(1, 64)
-  phone?: string | null;
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsString({ each: true })
+  @Length(1, 64, { each: true })
+  phones?: string[];
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['matriculas', 'rondas-app'],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  @Length(1, 40, { each: true })
+  tags?: string[];
 
   @ApiPropertyOptional({ enum: CLIENT_STATUSES })
   @IsOptional()

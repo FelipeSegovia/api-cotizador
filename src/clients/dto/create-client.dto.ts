@@ -1,6 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsEmail,
   IsOptional,
   IsString,
@@ -29,16 +31,35 @@ export class CreateClientDto {
   @Length(1, 500)
   website?: string;
 
-  @ApiPropertyOptional({ example: 'ana@anatorres.com' })
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['ana@anatorres.com', 'hola@anatorres.com'],
+  })
   @IsOptional()
-  @Transform(({ value }) => emptyToUndefined(value))
-  @IsEmail()
-  email?: string;
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsEmail({}, { each: true })
+  emails?: string[];
 
-  @ApiPropertyOptional({ example: '+34 600 123 456' })
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['+34 600 123 456', '+34 911 000 111'],
+  })
   @IsOptional()
-  @Transform(({ value }) => emptyToUndefined(value))
-  @IsString()
-  @Length(1, 64)
-  phone?: string;
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsString({ each: true })
+  @Length(1, 64, { each: true })
+  phones?: string[];
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['matriculas', 'rondas-app'],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  @Length(1, 40, { each: true })
+  tags?: string[];
 }

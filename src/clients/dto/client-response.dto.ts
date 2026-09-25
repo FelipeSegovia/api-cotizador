@@ -49,11 +49,14 @@ export class ClientResponseDto {
   @ApiPropertyOptional({ example: 'https://anatorres.com', nullable: true })
   website!: string | null;
 
-  @ApiPropertyOptional({ example: 'ana@anatorres.com', nullable: true })
-  email!: string | null;
+  @ApiProperty({ type: [String], example: ['ana@anatorres.com'] })
+  emails!: string[];
 
-  @ApiPropertyOptional({ example: '+34 600 123 456', nullable: true })
-  phone!: string | null;
+  @ApiProperty({ type: [String], example: ['+34 600 123 456'] })
+  phones!: string[];
+
+  @ApiProperty({ type: [String], example: ['matriculas', 'rondas-app'] })
+  tags!: string[];
 
   @ApiProperty({ enum: CLIENT_STATUSES })
   status!: ClientStatus;
